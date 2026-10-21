@@ -889,17 +889,34 @@ button {
   color: #fff;
   text-decoration: underline;
 }
-/* Icon thương hiệu dạng ảnh (public/icons/*.png) — dùng trong footer và nút liên hệ */
+/* Logo thương hiệu (public/icons/*.svg) — footer và nút liên hệ */
 .ico-img {
-  width: 20px;
-  height: 20px;
   object-fit: contain;
   flex: 0 0 auto;
   display: inline-block;
 }
-.footer-grid .ico-img {
-  width: 22px;
-  height: 22px;
+/* Icon Lucide inline trong nút/link: căn giữa theo chữ */
+.btn svg,
+.topnav .call svg,
+.iconline svg {
+  flex: 0 0 auto;
+}
+.topnav .call {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.iconline {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.iconline svg {
+  margin-top: 3px;
+  color: #a7e8d2;
+}
+.pimg .fallback b svg {
+  color: var(--ink-3);
 }
 .footer-grid .ico {
   width: 22px;

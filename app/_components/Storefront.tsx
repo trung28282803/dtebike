@@ -5,6 +5,7 @@ import type { CatalogDTO, ProductDTO, VariantDTO } from "@/lib/catalog";
 import { BRAND } from "@/lib/brand";
 import { money, telHref, smsHref, STOCK_LABEL } from "@/lib/format";
 import OrderModal, { type OrderDraft, type Ticket } from "./OrderModal";
+import { PhoneIcon, MessageIcon, MapPinIcon, ClockIcon, BikeIcon, WrenchIcon, BrandIcon } from "./Icons";
 
 /* Trang khách: hero → xe điện (lọc/tìm) → phụ kiện (theo nhóm) → dịch vụ → liên hệ.
    Toàn bộ nội dung chữ lấy từ settings (admin sửa được), không hard-code. */
@@ -89,7 +90,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
               {services.length > 0 && <a href="#service">Dịch vụ</a>}
               <a href="#contact">Liên hệ</a>
               <a className="call" href={telHref(s.phone)}>
-                ☎ {s.phoneDisplay}
+                <PhoneIcon size={16} /> {s.phoneDisplay}
               </a>
             </div>
           </nav>
@@ -104,7 +105,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                   Xem sản phẩm
                 </a>
                 <a className="btn btn-outline" href={telHref(s.phone)}>
-                  ☎ Gọi {s.phoneDisplay}
+                  <PhoneIcon /> Gọi {s.phoneDisplay}
                 </a>
               </div>
             </div>
@@ -226,7 +227,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
 
                       {p.variants.length === 0 ? (
                         <a className="btn btn-soft btn-block" href={telHref(s.phone)}>
-                          ☎ Liên hệ tư vấn
+                          <PhoneIcon /> Liên hệ tư vấn
                         </a>
                       ) : allOut ? (
                         <button className="btn btn-ghost btn-block" disabled>
@@ -275,7 +276,13 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                             {p.variants.length > 1 ? "Nhiều phiên bản" : money(price, cur)}
                           </span>
                           <button className="btn btn-soft" onClick={() => openQuote(p)}>
-                            {price == null ? "💬 Hỏi giá / đặt mua" : "Đặt mua"}
+                            {price == null ? (
+                              <>
+                                <MessageIcon size={15} /> Hỏi giá / đặt mua
+                              </>
+                            ) : (
+                              "Đặt mua"
+                            )}
                           </button>
                         </div>
                       </article>
@@ -360,37 +367,34 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
               </dl>
               <div className="contact-actions">
                 <a className="btn btn-brand" href={telHref(s.phone)}>
-                  ☎ Gọi ngay
+                  <PhoneIcon /> Gọi ngay
                 </a>
                 <a className="btn btn-soft" href={smsGeneral}>
-                  💬 Nhắn tin
+                  <MessageIcon /> Nhắn tin
                 </a>
                 {s.messengerUrl && (
                   <a className="btn btn-ghost" href={s.messengerUrl} target="_blank" rel="noreferrer">
-                    <img className="ico-img" src="/icons/messager_icon.png" alt="" />
-                    Messenger
-                  </a>
-                )}
-                {s.facebookUrl && (
-                  <a className="btn btn-ghost" href={s.facebookUrl} target="_blank" rel="noreferrer">
-                    <img className="ico-img" src="/icons/facebook_icon.png" alt="" />
-                    Facebook
-                  </a>
-                )}
-                {s.email && (
-                  <a className="btn btn-ghost" href={`mailto:${s.email}`}>
-                    <img className="ico-img" src="/icons/google_icon.png" alt="" />
-                    Email
+                    <BrandIcon name="messenger" /> Messenger
                   </a>
                 )}
                 {s.zaloUrl && (
                   <a className="btn btn-ghost" href={s.zaloUrl} target="_blank" rel="noreferrer">
-                    Zalo
+                    <BrandIcon name="zalo" /> Zalo
                   </a>
                 )}
                 {s.kakaoUrl && (
                   <a className="btn btn-ghost" href={s.kakaoUrl} target="_blank" rel="noreferrer">
-                    KakaoTalk
+                    <BrandIcon name="kakao" /> KakaoTalk
+                  </a>
+                )}
+                {s.facebookUrl && (
+                  <a className="btn btn-ghost" href={s.facebookUrl} target="_blank" rel="noreferrer">
+                    <BrandIcon name="facebook" /> Facebook
+                  </a>
+                )}
+                {s.email && (
+                  <a className="btn btn-ghost" href={`mailto:${s.email}`}>
+                    <BrandIcon name="gmail" /> Email
                   </a>
                 )}
               </div>
@@ -441,32 +445,39 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 {s.slogan ? ` — ${s.slogan}` : ""}
               </p>
               {s.address && (
-                <p>
-                  📍{" "}
+                <p className="iconline">
+                  <MapPinIcon size={16} />
                   {s.mapUrl ? (
                     <a href={s.mapUrl} target="_blank" rel="noreferrer">
                       {s.address}
                     </a>
                   ) : (
-                    s.address
+                    <span>{s.address}</span>
                   )}
                 </p>
               )}
-              {s.openHours && <p>🕒 {s.openHours}</p>}
+              {s.openHours && (
+                <p className="iconline">
+                  <ClockIcon size={16} />
+                  <span>{s.openHours}</span>
+                </p>
+              )}
             </div>
             <div>
               <h4>Liên hệ</h4>
               <ul>
                 <li>
                   <a href={telHref(s.phone)}>
-                    <span className="ico">☎</span>
+                    <span className="ico">
+                      <PhoneIcon size={13} />
+                    </span>
                     {s.phoneDisplay}
                   </a>
                 </li>
                 {s.email && (
                   <li>
                     <a href={`mailto:${s.email}`}>
-                      <img className="ico-img" src="/icons/google_icon.png" alt="" />
+                      <BrandIcon name="gmail" size={22} />
                       {s.email}
                     </a>
                   </li>
@@ -474,7 +485,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 {s.messengerUrl && (
                   <li>
                     <a href={s.messengerUrl} target="_blank" rel="noreferrer">
-                      <img className="ico-img" src="/icons/messager_icon.png" alt="" />
+                      <BrandIcon name="messenger" size={22} />
                       Messenger
                     </a>
                   </li>
@@ -482,14 +493,16 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 {s.zaloUrl && (
                   <li>
                     <a href={s.zaloUrl} target="_blank" rel="noreferrer">
-                      <span className="ico">Z</span>Zalo
+                      <BrandIcon name="zalo" size={22} />
+                      Zalo
                     </a>
                   </li>
                 )}
                 {s.kakaoUrl && (
                   <li>
                     <a href={s.kakaoUrl} target="_blank" rel="noreferrer">
-                      <span className="ico">K</span>KakaoTalk
+                      <BrandIcon name="kakao" size={22} />
+                      KakaoTalk
                     </a>
                   </li>
                 )}
@@ -501,7 +514,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 {s.facebookUrl && (
                   <li>
                     <a href={s.facebookUrl} target="_blank" rel="noreferrer">
-                      <img className="ico-img" src="/icons/facebook_icon.png" alt="" />
+                      <BrandIcon name="facebook" size={22} />
                       Facebook
                     </a>
                   </li>
@@ -509,18 +522,25 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 {s.mapUrl && (
                   <li>
                     <a href={s.mapUrl} target="_blank" rel="noreferrer">
-                      <span className="ico">📍</span>Chỉ đường Google Maps
+                      <BrandIcon name="maps" size={22} />
+                      Chỉ đường Google Maps
                     </a>
                   </li>
                 )}
                 <li>
                   <a href="#products">
-                    <span className="ico">🛵</span>Xe điện
+                    <span className="ico">
+                      <BikeIcon size={13} />
+                    </span>
+                    Xe điện
                   </a>
                 </li>
                 <li>
                   <a href="#accessories">
-                    <span className="ico">🔧</span>Phụ kiện
+                    <span className="ico">
+                      <WrenchIcon size={13} />
+                    </span>
+                    Phụ kiện
                   </a>
                 </li>
               </ul>
@@ -535,10 +555,10 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
       {/* Thanh dính đáy — chỉ hiện trên mobile (CSS). */}
       <div className="mobilebar">
         <a className="btn btn-brand" href={telHref(s.phone)}>
-          ☎ Gọi {s.phoneDisplay}
+          <PhoneIcon /> Gọi {s.phoneDisplay}
         </a>
         <a className="btn btn-soft" href={smsGeneral}>
-          💬 Nhắn tin
+          <MessageIcon /> Nhắn tin
         </a>
       </div>
 
@@ -580,10 +600,10 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
               <p className="thanks">{BRAND.thanks}</p>
               <div className="acts">
                 <a className="btn btn-brand" href={smsHref(s.phone, ticket.smsBody)}>
-                  💬 Gửi SMS kèm mã cho cửa hàng
+                  <MessageIcon /> Gửi SMS kèm mã cho cửa hàng
                 </a>
                 <a className="btn btn-soft" href={telHref(s.phone)}>
-                  ☎ Gọi {s.phoneDisplay}
+                  <PhoneIcon /> Gọi {s.phoneDisplay}
                 </a>
                 <button className="btn btn-ghost" onClick={() => setTicket(null)}>
                   Đóng
@@ -603,7 +623,7 @@ function ProductImage({ p }: { p: ProductDTO }) {
   if (!p.imageUrl || broken)
     return (
       <div className="fallback">
-        <b aria-hidden="true">{p.kind === "VEHICLE" ? "🛵" : "🔧"}</b>
+        <b aria-hidden="true">{p.kind === "VEHICLE" ? <BikeIcon size={40} strokeWidth={1.5} /> : <WrenchIcon size={40} strokeWidth={1.5} />}</b>
         {p.name}
       </div>
     );

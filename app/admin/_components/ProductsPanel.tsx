@@ -6,6 +6,7 @@ import type { ProductKind, StockStatus } from "@prisma/client";
 import type { CatalogDTO, ProductDTO } from "@/lib/catalog";
 import { money, STOCK_LABEL } from "@/lib/format";
 import { uploadImage } from "@/lib/image-client";
+import { CameraIcon } from "@/app/_components/Icons";
 import { Modal, apiCall } from "./ui";
 import NumberInput from "@/components/NumberInput";
 import Select from "@/components/Select";
@@ -418,7 +419,16 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
                   }}
                 />
                 <button type="button" className="ghost" disabled={uploading} onClick={() => fileRef.current?.click()}>
-                  {uploading ? "Đang tải lên…" : draft.imageUrl ? "Đổi ảnh" : "📷 Tải ảnh lên"}
+                  {uploading ? (
+                    "Đang tải lên…"
+                  ) : draft.imageUrl ? (
+                    "Đổi ảnh"
+                  ) : (
+                    <>
+                      <CameraIcon size={16} />
+                      &nbsp;Tải ảnh lên
+                    </>
+                  )}
                 </button>
                 {draft.imageUrl && (
                   <button type="button" className="link" onClick={() => setDraft({ ...draft, imageUrl: "" })}>
