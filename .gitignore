@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+
+# Biến môi trường — TUYỆT ĐỐI không commit connection string thật lên Git.
+.env
+.env.local
+.env.*.local
+
+*.tsbuildinfo
+.DS_Store
+.vercel
+npm-debug.log*

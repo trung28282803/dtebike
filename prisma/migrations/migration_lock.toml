@@ -1,0 +1,2 @@
+# Prisma dùng file này để nhận biết provider của thư mục migrations.
+provider = "postgresql"

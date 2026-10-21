@@ -1,0 +1,236 @@
+// Dtebike — Xe điện Dũng Trần. Postgres (Neon).
+// Mọi ràng buộc đặt ở migration/ORM, không dùng function/trigger trong DB.
+
+generator client {
+  // driverAdapters đã GA từ Prisma 6.6 — không cần khai báo previewFeatures.
+  // Adapter Neon (kết nối qua cổng 443) được cấu hình ở lib/prisma.ts.
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Tên biến theo đúng chuẩn Neon sinh ra, để Vercel↔Neon integration tự sync.
+  url       = env("DATABASE_URL")          // pooled (-pooler) — dùng cho app
+  directUrl = env("DATABASE_URL_UNPOOLED") // không pooling — dùng cho migrate
+}
+
+/* ------------------------------ Enum ------------------------------------ */
+
+// Hai loại hàng trên web: xe điện (nhiều phiên bản pin) và phụ kiện/phụ tùng.
+enum ProductKind {
+  VEHICLE
+  ACCESSORY
+}
+
+enum StockStatus {
+  IN_STOCK // có sẵn
+  PRE_ORDER // đặt trước, chờ hàng
+  OUT_OF_STOCK // hết hàng — vẫn hiện nhưng không đặt được
+}
+
+// ORDER: khách đặt mua một phiên bản cụ thể.
+// QUOTE: khách hỏi giá (phụ kiện chưa có giá niêm yết).
+enum OrderType {
+  ORDER
+  QUOTE
+}
+
+// Vòng đời đơn: NEW → CONTACTED → CONFIRMED → DELIVERED; hủy được ở mọi bước trước DELIVERED.
+enum OrderStatus {
+  NEW
+  CONTACTED
+  CONFIRMED
+  DELIVERED
+  CANCELLED
+}
+
+/* -------------------------- Cấu hình cửa hàng ---------------------------- */
+
+// Bản ghi đơn (id = "default"): mọi nội dung "tĩnh" trên trang khách đều sửa được ở admin.
+model ShopSettings {
+  id           String  @id @default("default")
+  name         String
+  slogan       String  @default("")
+  // phone: chỉ chữ số, dùng cho tel:/sms:. phoneDisplay: chuỗi hiển thị "010-6723-2868".
+  phone        String
+  phoneDisplay String
+  address      String  @default("")
+  addressNote  String  @default("")
+  mapUrl       String  @default("")
+  zaloUrl      String  @default("")
+  kakaoUrl     String  @default("")
+  openHours    String  @default("")
+
+  // Khối hero đầu trang.
+  heroEyebrow    String   @default("")
+  heroTitle      String   @default("")
+  heroSubtitle   String   @default("")
+  heroHighlights String[] @default([])
+
+  // Bảo hành dự kiến (tháng). 0 = không ghi.
+  warrantyFrameMonths     Int @default(12)
+  warrantyBatteryMonths   Int @default(6)
+  warrantyAccessoryMonths Int @default(3)
+
+  shippingNote String @default("")
+  fineprint    String @default("")
+  // Đơn vị tiền tệ của toàn bộ bảng giá: KRW hoặc VND.
+  currency     String @default("KRW")
+
+  updatedAt DateTime @updatedAt
+
+  @@map("shop_settings")
+}
+
+/* ------------------------------ Danh mục -------------------------------- */
+
+// Danh mục dùng để nhóm/lọc sản phẩm; tách theo kind để xe và phụ kiện không lẫn nhau.
+model Category {
+  id        String      @id @default(cuid())
+  kind      ProductKind
+  name      String
+  slug      String      @unique
+  sortOrder Int         @default(0)
+  isActive  Boolean     @default(true)
+  products  Product[]
+
+  @@index([kind, sortOrder])
+  @@map("categories")
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  kind        ProductKind
+  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  brand       String      @default("")
+  name        String
+  slug        String      @unique
+  summary     String      @default("") // một dòng dưới tên ("Phụ tùng phanh", "Chọn dung lượng pin")
+  description String      @default("")
+  imageUrl    String      @default("")
+  imageAlt    String      @default("")
+  sortOrder   Int         @default(0)
+  isFeatured  Boolean     @default(false)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  variants   ProductVariant[]
+  specs      ProductSpec[]
+  orderItems OrderItem[]
+
+  @@index([kind, isActive, sortOrder])
+  @@index([categoryId])
+  @@map("products")
+}
+
+// Phiên bản bán được của một sản phẩm. Xe: mỗi dung lượng pin là một phiên bản.
+// Phụ kiện: thường chỉ có một phiên bản "Tiêu chuẩn"; price = null nghĩa là "hỏi giá".
+model ProductVariant {
+  id             String      @id @default(cuid())
+  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId      String
+  name           String // "48V 12Ah"
+  sku            String?     @unique
+  voltageV       Int?
+  capacityAh     Float?
+  price          Int? // null = chưa niêm yết → khách gửi yêu cầu báo giá
+  compareAtPrice Int? // giá gạch (khuyến mãi), null = không hiện
+  stockStatus    StockStatus @default(IN_STOCK)
+  sortOrder      Int         @default(0)
+  isActive       Boolean     @default(true)
+  orderItems     OrderItem[]
+
+  @@unique([productId, name])
+  @@index([productId, sortOrder])
+  @@map("product_variants")
+}
+
+// Thông số kỹ thuật dạng nhãn–giá trị (động cơ, tốc độ, tải trọng…) — mỗi xe một bộ khác nhau
+// nên không đóng cứng thành cột.
+model ProductSpec {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  label     String
+  value     String
+  sortOrder Int     @default(0)
+
+  @@index([productId, sortOrder])
+  @@map("product_specs")
+}
+
+// Khối "Dịch vụ" trên trang khách (tư vấn pin, sửa chữa, giao hàng…).
+model ShopService {
+  id          String  @id @default(cuid())
+  icon        String  @default("") // emoji hoặc ký tự ngắn
+  title       String
+  description String  @default("")
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  @@map("shop_services")
+}
+
+/* ------------------------------ Đơn hàng -------------------------------- */
+
+model Order {
+  id           String      @id @default(cuid())
+  code         String      @unique // DT + yymmdd + 4 số → DT261021-4821
+  type         OrderType
+  status       OrderStatus @default(NEW)
+  customerName String
+  phone        String
+  address      String      @default("")
+  note         String      @default("")
+  // Snapshot lúc đặt — đổi giá sau này không làm sai đơn cũ. null khi có dòng chưa có giá.
+  totalPrice   Int?
+  currency     String      @default("KRW")
+  adminNote    String      @default("")
+  source       String      @default("web")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  items OrderItem[]
+  logs  OrderStatusLog[]
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([phone])
+  @@map("orders")
+}
+
+// Dòng hàng — lưu tên/giá snapshot; productId/variantId SetNull để xóa sản phẩm không mất lịch sử đơn.
+model OrderItem {
+  id          String          @id @default(cuid())
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  product     Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  variantId   String?
+  productName String
+  variantName String          @default("")
+  unitPrice   Int?
+  quantity    Int             @default(1)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+// Nhật ký đổi trạng thái — để biết ai/khi nào đã gọi khách, xác nhận, hủy.
+model OrderStatusLog {
+  id         String       @id @default(cuid())
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String       @default("")
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+  @@map("order_status_logs")
+}
