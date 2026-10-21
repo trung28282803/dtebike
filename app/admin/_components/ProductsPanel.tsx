@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ProductKind, StockStatus } from "@prisma/client";
 import type { CatalogDTO, ProductDTO } from "@/lib/catalog";
 import { money, STOCK_LABEL } from "@/lib/format";
+import { uploadImage } from "@/lib/image-client";
 import { Modal, apiCall } from "./ui";
 import NumberInput from "@/components/NumberInput";
 import Select from "@/components/Select";
@@ -68,6 +69,22 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const upload = async (file: File) => {
+    setUploading(true);
+    setUploadError("");
+    try {
+      const url = await uploadImage(file, isVehicle ? "vehicles" : "accessories");
+      setDraft((d) => d && { ...d, imageUrl: url });
+    } catch (e: any) {
+      setUploadError(e?.message || "Không tải được ảnh.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
@@ -339,7 +356,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
               <button className="ghost" onClick={() => setDraft(null)}>
                 Hủy
               </button>
-              <button className="add" disabled={!draftValid || busy} onClick={save}>
+              <button className="add" disabled={!draftValid || busy || uploading} onClick={save}>
                 {busy ? "Đang lưu…" : "Lưu"}
               </button>
             </>
@@ -386,18 +403,42 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
 
           <div className="row c2">
             <div>
-              <label htmlFor="pd-img">Đường dẫn ảnh</label>
-              <input
-                id="pd-img"
-                value={draft.imageUrl}
-                placeholder={isVehicle ? "/images/vehicles/ten-xe.jpeg" : "/images/accessories/ten.jpeg"}
-                onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
-              />
-              <div className="hint">Ảnh đặt trong thư mục public/images/… của dự án, hoặc dán link https.</div>
+              <label htmlFor="pd-file">Ảnh sản phẩm</label>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                <input
+                  id="pd-file"
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) upload(f);
+                    e.target.value = "";
+                  }}
+                />
+                <button type="button" className="ghost" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                  {uploading ? "Đang tải lên…" : draft.imageUrl ? "Đổi ảnh" : "📷 Tải ảnh lên"}
+                </button>
+                {draft.imageUrl && (
+                  <button type="button" className="link" onClick={() => setDraft({ ...draft, imageUrl: "" })}>
+                    Bỏ ảnh
+                  </button>
+                )}
+              </div>
+              {uploadError && <div className="err">{uploadError}</div>}
               {draft.imageUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img className="imgprev" src={draft.imageUrl} alt="" />
               )}
+              <input
+                id="pd-img"
+                value={draft.imageUrl}
+                placeholder="hoặc dán đường dẫn /images/… hay link https"
+                style={{ marginTop: 8, fontSize: 13 }}
+                onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
+              />
+              <div className="hint">Ảnh tự được thu nhỏ về tối đa 1600px trước khi tải lên.</div>
             </div>
             <div>
               <label htmlFor="pd-alt">Mô tả ảnh (alt)</label>

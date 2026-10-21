@@ -87,6 +87,33 @@ export const strList = (v: unknown, field: string, max = 50, itemMax = 200): str
     .filter(Boolean);
 };
 
+// URL không bắt buộc: rỗng → "", có giá trị thì phải là http(s).
+export const optUrl = (v: unknown, field: string, max = 500) => {
+  const s = optStr(v, field, max);
+  if (!s) return "";
+  if (!/^https?:\/\/[^\s]+$/i.test(s)) throw new ValidationError(`${field} phải là đường dẫn bắt đầu bằng https://.`);
+  return s;
+};
+
+export const optEmail = (v: unknown, field = "email") => {
+  const s = optStr(v, field, 120);
+  if (!s) return "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) throw new ValidationError(`${field} chưa hợp lệ.`);
+  return s;
+};
+
+/* Bản đồ nhúng: admin dán nguyên thẻ <iframe …> từ Google Maps (Chia sẻ → Nhúng bản đồ)
+   hoặc chỉ phần src. Chỉ chấp nhận domain Google để trang khách không nhúng được trang lạ. */
+export const mapEmbed = (v: unknown, field = "bản đồ nhúng") => {
+  const raw = optStr(v, field, 4000);
+  if (!raw) return "";
+  const m = /src=["']([^"']+)["']/i.exec(raw);
+  const src = (m ? m[1] : raw).trim();
+  if (!/^https:\/\/(www\.google\.[a-z.]+|maps\.google\.[a-z.]+)\/maps(\/embed)?[/?]/i.test(src))
+    throw new ValidationError(`${field} phải là iframe/link nhúng từ Google Maps.`);
+  return src;
+};
+
 // SĐT: chấp nhận VN (0xxxxxxxxx) và Hàn (010-xxxx-xxxx), có thể kèm +, khoảng trắng, gạch, chấm.
 export const phoneStr = (v: unknown, field = "số điện thoại") => {
   const s = str(v, field, 30);

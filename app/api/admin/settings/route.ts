@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { toErrorResponse, str, optStr, int, enumOf, strList, phoneStr } from "@/lib/api";
+import { toErrorResponse, str, optStr, optUrl, optEmail, mapEmbed, int, enumOf, strList, phoneStr } from "@/lib/api";
 
 export const runtime = "nodejs";
 
@@ -22,9 +22,13 @@ export async function PUT(req: NextRequest) {
       phone: phoneDisplay.replace(/[^\d+]/g, ""),
       address: optStr(b.address, "địa chỉ", 300),
       addressNote: optStr(b.addressNote, "ghi chú địa chỉ", 300),
-      mapUrl: optStr(b.mapUrl, "link bản đồ", 500),
-      zaloUrl: optStr(b.zaloUrl, "link Zalo", 300),
-      kakaoUrl: optStr(b.kakaoUrl, "link KakaoTalk", 300),
+      mapUrl: optUrl(b.mapUrl, "link bản đồ"),
+      mapEmbedUrl: mapEmbed(b.mapEmbedUrl),
+      zaloUrl: optUrl(b.zaloUrl, "link Zalo"),
+      kakaoUrl: optUrl(b.kakaoUrl, "link KakaoTalk"),
+      facebookUrl: optUrl(b.facebookUrl, "link Facebook"),
+      messengerUrl: optUrl(b.messengerUrl, "link Messenger"),
+      email: optEmail(b.email),
       openHours: optStr(b.openHours, "giờ mở cửa", 120),
       heroEyebrow: optStr(b.heroEyebrow, "dòng nhỏ hero", 80),
       heroTitle: optStr(b.heroTitle, "tiêu đề hero", 160),

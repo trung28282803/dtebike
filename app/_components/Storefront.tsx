@@ -365,6 +365,24 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 <a className="btn btn-soft" href={smsGeneral}>
                   💬 Nhắn tin
                 </a>
+                {s.messengerUrl && (
+                  <a className="btn btn-ghost" href={s.messengerUrl} target="_blank" rel="noreferrer">
+                    <img className="ico-img" src="/icons/messager_icon.png" alt="" />
+                    Messenger
+                  </a>
+                )}
+                {s.facebookUrl && (
+                  <a className="btn btn-ghost" href={s.facebookUrl} target="_blank" rel="noreferrer">
+                    <img className="ico-img" src="/icons/facebook_icon.png" alt="" />
+                    Facebook
+                  </a>
+                )}
+                {s.email && (
+                  <a className="btn btn-ghost" href={`mailto:${s.email}`}>
+                    <img className="ico-img" src="/icons/google_icon.png" alt="" />
+                    Email
+                  </a>
+                )}
                 {s.zaloUrl && (
                   <a className="btn btn-ghost" href={s.zaloUrl} target="_blank" rel="noreferrer">
                     Zalo
@@ -399,19 +417,115 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
               </p>
             </div>
           </div>
+
+          {s.mapEmbedUrl && (
+            <iframe
+              className="mapframe"
+              style={{ marginTop: 16 }}
+              src={s.mapEmbedUrl}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              title={`Bản đồ ${s.name}`}
+            />
+          )}
         </section>
       </main>
 
       <footer className="site-footer">
         <div className="wrap">
-          <p>
-            <b style={{ color: "#fff" }}>{s.name}</b>
-            {s.slogan ? ` — ${s.slogan}` : ""}
-          </p>
-          {s.address && <p>📍 {s.address}</p>}
-          <p>
-            📞 <a href={telHref(s.phone)}>{s.phoneDisplay}</a>
-          </p>
+          <div className="footer-grid">
+            <div>
+              <p>
+                <b style={{ color: "#fff", fontSize: 16 }}>{s.name}</b>
+                {s.slogan ? ` — ${s.slogan}` : ""}
+              </p>
+              {s.address && (
+                <p>
+                  📍{" "}
+                  {s.mapUrl ? (
+                    <a href={s.mapUrl} target="_blank" rel="noreferrer">
+                      {s.address}
+                    </a>
+                  ) : (
+                    s.address
+                  )}
+                </p>
+              )}
+              {s.openHours && <p>🕒 {s.openHours}</p>}
+            </div>
+            <div>
+              <h4>Liên hệ</h4>
+              <ul>
+                <li>
+                  <a href={telHref(s.phone)}>
+                    <span className="ico">☎</span>
+                    {s.phoneDisplay}
+                  </a>
+                </li>
+                {s.email && (
+                  <li>
+                    <a href={`mailto:${s.email}`}>
+                      <img className="ico-img" src="/icons/google_icon.png" alt="" />
+                      {s.email}
+                    </a>
+                  </li>
+                )}
+                {s.messengerUrl && (
+                  <li>
+                    <a href={s.messengerUrl} target="_blank" rel="noreferrer">
+                      <img className="ico-img" src="/icons/messager_icon.png" alt="" />
+                      Messenger
+                    </a>
+                  </li>
+                )}
+                {s.zaloUrl && (
+                  <li>
+                    <a href={s.zaloUrl} target="_blank" rel="noreferrer">
+                      <span className="ico">Z</span>Zalo
+                    </a>
+                  </li>
+                )}
+                {s.kakaoUrl && (
+                  <li>
+                    <a href={s.kakaoUrl} target="_blank" rel="noreferrer">
+                      <span className="ico">K</span>KakaoTalk
+                    </a>
+                  </li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <h4>Theo dõi</h4>
+              <ul>
+                {s.facebookUrl && (
+                  <li>
+                    <a href={s.facebookUrl} target="_blank" rel="noreferrer">
+                      <img className="ico-img" src="/icons/facebook_icon.png" alt="" />
+                      Facebook
+                    </a>
+                  </li>
+                )}
+                {s.mapUrl && (
+                  <li>
+                    <a href={s.mapUrl} target="_blank" rel="noreferrer">
+                      <span className="ico">📍</span>Chỉ đường Google Maps
+                    </a>
+                  </li>
+                )}
+                <li>
+                  <a href="#products">
+                    <span className="ico">🛵</span>Xe điện
+                  </a>
+                </li>
+                <li>
+                  <a href="#accessories">
+                    <span className="ico">🔧</span>Phụ kiện
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
           <div className="fine">
             © {new Date().getFullYear()} {s.name}. {s.fineprint}
           </div>

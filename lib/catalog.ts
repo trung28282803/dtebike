@@ -11,8 +11,12 @@ export interface SettingsDTO {
   address: string;
   addressNote: string;
   mapUrl: string;
+  mapEmbedUrl: string;
   zaloUrl: string;
   kakaoUrl: string;
+  facebookUrl: string;
+  messengerUrl: string;
+  email: string;
   openHours: string;
   heroEyebrow: string;
   heroTitle: string;
@@ -97,8 +101,12 @@ const settingsSelect = {
   address: true,
   addressNote: true,
   mapUrl: true,
+  mapEmbedUrl: true,
   zaloUrl: true,
   kakaoUrl: true,
+  facebookUrl: true,
+  messengerUrl: true,
+  email: true,
   openHours: true,
   heroEyebrow: true,
   heroTitle: true,

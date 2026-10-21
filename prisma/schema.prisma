@@ -56,9 +56,13 @@ model ShopSettings {
   phoneDisplay String
   address      String  @default("")
   addressNote  String  @default("")
-  mapUrl       String  @default("")
+  mapUrl       String  @default("") // link mở Google Maps
+  mapEmbedUrl  String  @default("") // src của iframe "Nhúng bản đồ" (chỉ nhận domain Google)
   zaloUrl      String  @default("")
   kakaoUrl     String  @default("")
+  facebookUrl  String  @default("")
+  messengerUrl String  @default("")
+  email        String  @default("")
   openHours    String  @default("")
 
   // Khối hero đầu trang.

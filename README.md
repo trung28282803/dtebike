@@ -31,6 +31,7 @@ app/
     admin/products[/id]        POST · PATCH · DELETE   (kèm variants[] + specs[], thay toàn bộ)
     admin/services[/id]        POST · PATCH · DELETE
     admin/settings             PUT  — cấu hình cửa hàng (bản ghi đơn)
+    admin/upload               POST — upload ảnh lên Vercel Blob (multipart)
 lib/
   orders.ts                    ★ Tạo đơn (đối chiếu DB, snapshot giá, mã DT…) + chuyển trạng thái
   order-status.ts              Luồng trạng thái — không import Prisma, dùng được ở client
@@ -182,10 +183,23 @@ npm run db:apply
 7. Vào `/admin` → tab **Cửa hàng**: sửa tên, SĐT, địa chỉ, hero; tab **Xe điện / Phụ
    kiện**: cập nhật giá thật.
 
-**Ảnh sản phẩm:** hiện đặt trong `public/images/…` và commit cùng code (Vercel không có
-đĩa ghi được). Thêm ảnh mới = thêm file vào repo rồi nhập đường dẫn `/images/…` ở admin,
-hoặc dán link ảnh https từ nơi khác. Cần upload ngay trên admin thì tích hợp Vercel Blob /
-Cloudinary (chưa làm).
+### Ảnh sản phẩm — upload qua Vercel Blob
+
+Vercel không có đĩa ghi được, nên ảnh upload từ admin đi vào **Vercel Blob** (gói Hobby
+miễn phí 1 GB). Bật một lần:
+
+1. Vercel → project → **Storage → Create Database → Blob** → đặt tên → **Connect** vào
+   project (cả Production + Preview). Vercel tự thêm `BLOB_READ_WRITE_TOKEN`.
+2. **Redeploy** một lần để function nhận biến mới.
+3. Chạy local: copy token đó (Settings → Environment Variables) vào `.env`.
+
+Sau đó trong admin → Sửa sản phẩm → **📷 Tải ảnh lên**. Trình duyệt tự thu nhỏ ảnh về
+≤ 1600px / WebP (~200–400 KB) trước khi gửi ([lib/image-client.ts](lib/image-client.ts));
+API `POST /api/admin/upload` kiểm tra đăng nhập, loại file (JPG/PNG/WebP) và dung lượng
+≤ 4 MB rồi trả về URL public để lưu vào `products.imageUrl`.
+
+Ảnh demo ban đầu vẫn nằm trong `public/images/…` (commit cùng code) — hai cách dùng song
+song được. Ảnh cũ trên Blob **không tự xóa** khi đổi ảnh; dọn ở Vercel → Storage khi cần.
 
 ---
 
@@ -211,6 +225,6 @@ Cloudinary (chưa làm).
 
 ## 7. Chưa nằm trong phạm vi
 
-Upload ảnh trên admin, giỏ hàng nhiều sản phẩm trong một đơn (API đã hỗ trợ `items[]`
+Giỏ hàng nhiều sản phẩm trong một đơn (API đã hỗ trợ `items[]`
 nhưng UI gửi 1 dòng), thanh toán online, thông báo SMS/Zalo/Kakao tự động, nhiều tài
 khoản admin, tồn kho theo số lượng.

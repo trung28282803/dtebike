@@ -8,6 +8,12 @@ import { apiCall } from "./ui";
 import NumberInput from "@/components/NumberInput";
 import Select from "@/components/Select";
 
+// Dán nguyên thẻ <iframe> → chỉ giữ phần src; dán link thì giữ nguyên.
+const extractEmbedSrc = (raw: string) => {
+  const m = /src=["']([^"']+)["']/i.exec(raw);
+  return m ? m[1] : raw;
+};
+
 const EMPTY: SettingsDTO = {
   name: BRAND.full,
   slogan: "",
@@ -16,8 +22,12 @@ const EMPTY: SettingsDTO = {
   address: "",
   addressNote: "",
   mapUrl: "",
+  mapEmbedUrl: "",
   zaloUrl: "",
   kakaoUrl: "",
+  facebookUrl: "",
+  messengerUrl: "",
+  email: "",
   openHours: "",
   heroEyebrow: "",
   heroTitle: "",
@@ -104,15 +114,63 @@ export default function SettingsPanel({ settings }: { settings: SettingsDTO | nu
               <input id="st-map" value={f.mapUrl} maxLength={500} placeholder="https://maps…" onChange={(e) => set("mapUrl", e.target.value)} />
             </div>
           </div>
+          <div>
+            <label htmlFor="st-embed">Bản đồ nhúng (Google Maps → Chia sẻ → Nhúng bản đồ → dán nguyên thẻ &lt;iframe&gt;)</label>
+            <textarea
+              id="st-embed"
+              value={f.mapEmbedUrl}
+              rows={3}
+              placeholder='<iframe src="https://www.google.com/maps/embed?pb=…" …></iframe>'
+              onChange={(e) => set("mapEmbedUrl", extractEmbedSrc(e.target.value))}
+            />
+            <div className="hint">Hệ thống tự tách phần src; chỉ nhận bản đồ của Google.</div>
+            {f.mapEmbedUrl && (
+              <iframe
+                className="mapframe"
+                src={f.mapEmbedUrl}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Xem trước bản đồ"
+                style={{ height: 220, marginTop: 8 }}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="hd">
+          <h3>Kênh liên hệ</h3>
+        </div>
+        <div className="bd" style={{ display: "grid", gap: 16 }}>
           <div className="row c2">
             <div>
-              <label htmlFor="st-zalo">Link Zalo</label>
-              <input id="st-zalo" value={f.zaloUrl} maxLength={300} placeholder="https://zalo.me/…" onChange={(e) => set("zaloUrl", e.target.value)} />
+              <label htmlFor="st-fb">Facebook</label>
+              <input id="st-fb" value={f.facebookUrl} maxLength={300} placeholder="https://facebook.com/…" onChange={(e) => set("facebookUrl", e.target.value)} />
             </div>
             <div>
-              <label htmlFor="st-kakao">Link KakaoTalk</label>
+              <label htmlFor="st-msg">Messenger</label>
+              <input id="st-msg" value={f.messengerUrl} maxLength={300} placeholder="https://m.me/…" onChange={(e) => set("messengerUrl", e.target.value)} />
+            </div>
+          </div>
+          <div className="row c2">
+            <div>
+              <label htmlFor="st-email">Email</label>
+              <input id="st-email" type="email" value={f.email} maxLength={120} placeholder="shop@gmail.com" onChange={(e) => set("email", e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="st-zalo">Zalo</label>
+              <input id="st-zalo" value={f.zaloUrl} maxLength={300} placeholder="https://zalo.me/…" onChange={(e) => set("zaloUrl", e.target.value)} />
+            </div>
+          </div>
+          <div className="row c2">
+            <div>
+              <label htmlFor="st-kakao">KakaoTalk</label>
               <input id="st-kakao" value={f.kakaoUrl} maxLength={300} placeholder="https://open.kakao.com/…" onChange={(e) => set("kakaoUrl", e.target.value)} />
             </div>
+          </div>
+          <div className="hint" style={{ margin: 0 }}>
+            Để trống kênh nào thì trang khách không hiện kênh đó.
           </div>
         </div>
       </div>
