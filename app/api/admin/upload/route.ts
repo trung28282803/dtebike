@@ -47,6 +47,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: blob.url, size: file.size }, { status: 201 });
   } catch (e) {
+    // Store tạo nhầm chế độ Private → báo thẳng cách sửa, không để rơi vào "Lỗi hệ thống".
+    if (e instanceof Error && /private store|private access/i.test(e.message))
+      return toErrorResponse(
+        new ValidationError(
+          "Kho ảnh Vercel Blob đang ở chế độ Private. Hãy xóa store này và tạo lại với Access = Public, rồi redeploy."
+        )
+      );
+    if (e instanceof Error && /BLOB_READ_WRITE_TOKEN|No token found/i.test(e.message))
+      return toErrorResponse(new ValidationError("Token kho ảnh không hợp lệ — kiểm tra BLOB_READ_WRITE_TOKEN và redeploy."));
     return toErrorResponse(e);
   }
 }
