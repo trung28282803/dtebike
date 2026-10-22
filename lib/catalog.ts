@@ -8,16 +8,11 @@ export interface SettingsDTO {
   slogan: string;
   phone: string;
   phoneDisplay: string;
-  address: string;
-  addressNote: string;
-  mapUrl: string;
-  mapEmbedUrl: string;
   zaloUrl: string;
   kakaoUrl: string;
   facebookUrl: string;
   messengerUrl: string;
   email: string;
-  openHours: string;
   heroEyebrow: string;
   heroTitle: string;
   heroSubtitle: string;
@@ -86,8 +81,24 @@ export interface ServiceDTO {
   isActive: boolean;
 }
 
+// Chi nhánh — SĐT rỗng nghĩa là dùng hotline chung trong SettingsDTO.
+export interface BranchDTO {
+  id: string;
+  name: string;
+  phone: string;
+  phoneDisplay: string;
+  address: string;
+  addressNote: string;
+  mapUrl: string;
+  mapEmbedUrl: string;
+  openHours: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export interface CatalogDTO {
   settings: SettingsDTO | null;
+  branches: BranchDTO[];
   categories: CategoryDTO[];
   products: ProductDTO[];
   services: ServiceDTO[];
@@ -98,16 +109,11 @@ const settingsSelect = {
   slogan: true,
   phone: true,
   phoneDisplay: true,
-  address: true,
-  addressNote: true,
-  mapUrl: true,
-  mapEmbedUrl: true,
   zaloUrl: true,
   kakaoUrl: true,
   facebookUrl: true,
   messengerUrl: true,
   email: true,
-  openHours: true,
   heroEyebrow: true,
   heroTitle: true,
   heroSubtitle: true,
@@ -162,10 +168,27 @@ export async function getSettings(): Promise<SettingsDTO | null> {
   return prisma.shopSettings.findUnique({ where: { id: "default" }, select: settingsSelect });
 }
 
+const branchOrder = [{ sortOrder: "asc" }, { name: "asc" }] satisfies Prisma.ShopBranchOrderByWithRelationInput[];
+
+const toBranch = (b: Prisma.ShopBranchGetPayload<object>): BranchDTO => ({
+  id: b.id,
+  name: b.name,
+  phone: b.phone,
+  phoneDisplay: b.phoneDisplay,
+  address: b.address,
+  addressNote: b.addressNote,
+  mapUrl: b.mapUrl,
+  mapEmbedUrl: b.mapEmbedUrl,
+  openHours: b.openHours,
+  sortOrder: b.sortOrder,
+  isActive: b.isActive,
+});
+
 // Danh mục cho trang khách: chỉ bản ghi đang hoạt động, phiên bản đang bán.
 export async function getPublicCatalog(): Promise<CatalogDTO> {
-  const [settings, categories, products, services] = await Promise.all([
+  const [settings, branches, categories, products, services] = await Promise.all([
     getSettings(),
+    prisma.shopBranch.findMany({ where: { isActive: true }, orderBy: branchOrder }),
     prisma.category.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
     prisma.product.findMany({
       where: { isActive: true },
@@ -180,6 +203,7 @@ export async function getPublicCatalog(): Promise<CatalogDTO> {
 
   return {
     settings,
+    branches: branches.map(toBranch),
     categories: categories.map((c) => ({
       id: c.id,
       kind: c.kind,
@@ -206,8 +230,9 @@ export async function getPublicCatalog(): Promise<CatalogDTO> {
 
 // Danh mục đầy đủ cho trang quản trị (gồm cả bản ghi đã ẩn).
 export async function getAdminCatalog(): Promise<CatalogDTO> {
-  const [settings, categories, products, services] = await Promise.all([
+  const [settings, branches, categories, products, services] = await Promise.all([
     getSettings(),
+    prisma.shopBranch.findMany({ orderBy: branchOrder }),
     prisma.category.findMany({ orderBy: [{ kind: "asc" }, { sortOrder: "asc" }, { name: "asc" }] }),
     prisma.product.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }], include: productInclude }),
     prisma.shopService.findMany({ orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
@@ -215,6 +240,7 @@ export async function getAdminCatalog(): Promise<CatalogDTO> {
 
   return {
     settings,
+    branches: branches.map(toBranch),
     categories: categories.map((c) => ({
       id: c.id,
       kind: c.kind,

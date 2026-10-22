@@ -8,27 +8,16 @@ import { apiCall } from "./ui";
 import NumberInput from "@/components/NumberInput";
 import Select from "@/components/Select";
 
-// Dán nguyên thẻ <iframe> → chỉ giữ phần src; dán link thì giữ nguyên.
-const extractEmbedSrc = (raw: string) => {
-  const m = /src=["']([^"']+)["']/i.exec(raw);
-  return m ? m[1] : raw;
-};
-
 const EMPTY: SettingsDTO = {
   name: BRAND.full,
   slogan: "",
   phone: "",
   phoneDisplay: "",
-  address: "",
-  addressNote: "",
-  mapUrl: "",
-  mapEmbedUrl: "",
   zaloUrl: "",
   kakaoUrl: "",
   facebookUrl: "",
   messengerUrl: "",
   email: "",
-  openHours: "",
   heroEyebrow: "",
   heroTitle: "",
   heroSubtitle: "",
@@ -89,51 +78,13 @@ export default function SettingsPanel({ settings }: { settings: SettingsDTO | nu
               <input id="st-slogan" value={f.slogan} maxLength={160} onChange={(e) => set("slogan", e.target.value)} />
             </div>
           </div>
-          <div className="row c2">
-            <div>
-              <label htmlFor="st-phone">Số điện thoại hiển thị</label>
-              <input id="st-phone" value={f.phoneDisplay} inputMode="tel" placeholder="010-6723-2868" onChange={(e) => set("phoneDisplay", e.target.value)} />
-              <div className="hint">Nút gọi/nhắn tin tự lấy chữ số từ ô này.</div>
-            </div>
-            <div>
-              <label htmlFor="st-hours">Giờ mở cửa</label>
-              <input id="st-hours" value={f.openHours} maxLength={120} placeholder="09:00 – 19:00, nghỉ Chủ nhật" onChange={(e) => set("openHours", e.target.value)} />
-            </div>
-          </div>
           <div>
-            <label htmlFor="st-address">Địa chỉ</label>
-            <input id="st-address" value={f.address} maxLength={300} onChange={(e) => set("address", e.target.value)} />
-          </div>
-          <div className="row c2">
-            <div>
-              <label htmlFor="st-addrnote">Ghi chú địa chỉ</label>
-              <input id="st-addrnote" value={f.addressNote} maxLength={300} placeholder="Gần ga…, gọi trước khi đến" onChange={(e) => set("addressNote", e.target.value)} />
+            <label htmlFor="st-phone">Hotline chung</label>
+            <input id="st-phone" value={f.phoneDisplay} inputMode="tel" placeholder="010-6723-2868" onChange={(e) => set("phoneDisplay", e.target.value)} />
+            <div className="hint">
+              Nút gọi/nhắn tin trên trang khách tự lấy chữ số từ ô này. Địa chỉ, giờ mở cửa và bản đồ của từng cửa hàng
+              sửa ở tab <b>Chi nhánh</b>.
             </div>
-            <div>
-              <label htmlFor="st-map">Link bản đồ</label>
-              <input id="st-map" value={f.mapUrl} maxLength={500} placeholder="https://maps…" onChange={(e) => set("mapUrl", e.target.value)} />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="st-embed">Bản đồ nhúng (Google Maps → Chia sẻ → Nhúng bản đồ → dán nguyên thẻ &lt;iframe&gt;)</label>
-            <textarea
-              id="st-embed"
-              value={f.mapEmbedUrl}
-              rows={3}
-              placeholder='<iframe src="https://www.google.com/maps/embed?pb=…" …></iframe>'
-              onChange={(e) => set("mapEmbedUrl", extractEmbedSrc(e.target.value))}
-            />
-            <div className="hint">Hệ thống tự tách phần src; chỉ nhận bản đồ của Google.</div>
-            {f.mapEmbedUrl && (
-              <iframe
-                className="mapframe"
-                src={f.mapEmbedUrl}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Xem trước bản đồ"
-                style={{ height: 220, marginTop: 8 }}
-              />
-            )}
           </div>
         </div>
       </div>

@@ -4,7 +4,8 @@
      2. Hỏi giá phụ kiện chưa niêm yết → totalPrice = null.
      3. Chặn phiên bản hết hàng (OUT_OF_STOCK) khi đặt mua.
      4. Chuyển trạng thái đúng luồng; chặn chuyển ngược/kết thúc.
-     5. Xóa sản phẩm không làm mất dòng đơn (snapshot + SetNull). */
+     5. Xóa sản phẩm không làm mất dòng đơn (snapshot + SetNull).
+     6. Chi nhánh: chặn id không tồn tại/đã ẩn; xóa chi nhánh vẫn giữ branchName trên đơn. */
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
 import { createOrder, changeOrderStatus, OrderError } from "../lib/orders";
@@ -75,6 +76,21 @@ async function main() {
   const item = await prisma.orderItem.findFirst({ where: { orderId: o3.id } });
   if (item && item.productId === null && item.productName === "Tạm smoke" && item.unitPrice === 12345) ok("xóa sản phẩm vẫn giữ snapshot dòng đơn");
   else fail("snapshot dòng đơn bị mất sau khi xóa sản phẩm");
+
+  // 6
+  await expectError(
+    () => createOrder({ type: "ORDER", ...customer, branchId: "khong-ton-tai", items: [{ productId: vehicle.id, variantId: variant.id }] }),
+    "NOT_FOUND",
+    "chặn chi nhánh không tồn tại"
+  );
+  const tmpBranch = await prisma.shopBranch.create({ data: { name: "Chi nhánh smoke", sortOrder: 9999 } });
+  const o4 = await createOrder({ type: "ORDER", ...customer, branchId: tmpBranch.id, items: [{ productId: vehicle.id, variantId: variant.id }] });
+  created.push(o4.id);
+  await prisma.shopBranch.delete({ where: { id: tmpBranch.id } });
+  const o4After = await prisma.order.findUnique({ where: { id: o4.id }, select: { branchId: true, branchName: true } });
+  if (o4.branchId === tmpBranch.id && o4After?.branchId === null && o4After.branchName === "Chi nhánh smoke")
+    ok("xóa chi nhánh vẫn giữ tên chi nhánh trên đơn");
+  else fail(`chi nhánh: branchId=${o4After?.branchId}, branchName=${o4After?.branchName}`);
 
   await prisma.order.deleteMany({ where: { id: { in: created } } });
   console.log(process.exitCode ? "CÓ LỖI." : "Tất cả OK.");

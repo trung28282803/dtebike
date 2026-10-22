@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { toErrorResponse, str, optStr, optUrl, optEmail, mapEmbed, int, enumOf, strList, phoneStr } from "@/lib/api";
+import { toErrorResponse, str, optStr, optUrl, optEmail, int, enumOf, strList, phoneStr } from "@/lib/api";
 
 export const runtime = "nodejs";
 
 const CURRENCIES = ["KRW", "VND"] as const;
 
-// PUT /api/admin/settings — thay toàn bộ cấu hình cửa hàng (bản ghi đơn id="default").
+// PUT /api/admin/settings — thay toàn bộ cấu hình chung của chuỗi (bản ghi đơn id="default").
+// Địa chỉ / giờ mở cửa / bản đồ từng chi nhánh: /api/admin/branches.
 export async function PUT(req: NextRequest) {
   try {
     await requireAdmin();
@@ -20,16 +21,11 @@ export async function PUT(req: NextRequest) {
       phoneDisplay,
       // Số dùng cho tel:/sms: — luôn suy từ số hiển thị để hai bên không lệch nhau.
       phone: phoneDisplay.replace(/[^\d+]/g, ""),
-      address: optStr(b.address, "địa chỉ", 300),
-      addressNote: optStr(b.addressNote, "ghi chú địa chỉ", 300),
-      mapUrl: optUrl(b.mapUrl, "link bản đồ"),
-      mapEmbedUrl: mapEmbed(b.mapEmbedUrl),
       zaloUrl: optUrl(b.zaloUrl, "link Zalo"),
       kakaoUrl: optUrl(b.kakaoUrl, "link KakaoTalk"),
       facebookUrl: optUrl(b.facebookUrl, "link Facebook"),
       messengerUrl: optUrl(b.messengerUrl, "link Messenger"),
       email: optEmail(b.email),
-      openHours: optStr(b.openHours, "giờ mở cửa", 120),
       heroEyebrow: optStr(b.heroEyebrow, "dòng nhỏ hero", 80),
       heroTitle: optStr(b.heroTitle, "tiêu đề hero", 160),
       heroSubtitle: optStr(b.heroSubtitle, "mô tả hero", 300),

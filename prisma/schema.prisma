@@ -46,24 +46,20 @@ enum OrderStatus {
 
 /* -------------------------- Cấu hình cửa hàng ---------------------------- */
 
-// Bản ghi đơn (id = "default"): mọi nội dung "tĩnh" trên trang khách đều sửa được ở admin.
+// Bản ghi đơn (id = "default"): nội dung chung của cả chuỗi (thương hiệu, hotline, hero,
+// bảo hành, tiền tệ, mạng xã hội). Địa chỉ / giờ mở cửa / bản đồ nằm ở từng ShopBranch.
 model ShopSettings {
   id           String  @id @default("default")
   name         String
   slogan       String  @default("")
-  // phone: chỉ chữ số, dùng cho tel:/sms:. phoneDisplay: chuỗi hiển thị "010-6723-2868".
+  // Hotline chung của chuỗi. phone: chỉ chữ số, dùng cho tel:/sms:. phoneDisplay: "010-6723-2868".
   phone        String
   phoneDisplay String
-  address      String  @default("")
-  addressNote  String  @default("")
-  mapUrl       String  @default("") // link mở Google Maps
-  mapEmbedUrl  String  @default("") // src của iframe "Nhúng bản đồ" (chỉ nhận domain Google)
   zaloUrl      String  @default("")
   kakaoUrl     String  @default("")
   facebookUrl  String  @default("")
   messengerUrl String  @default("")
   email        String  @default("")
-  openHours    String  @default("")
 
   // Khối hero đầu trang.
   heroEyebrow    String   @default("")
@@ -84,6 +80,30 @@ model ShopSettings {
   updatedAt DateTime @updatedAt
 
   @@map("shop_settings")
+}
+
+// Chi nhánh / cửa hàng của chuỗi. Chi nhánh đứng đầu (sortOrder nhỏ nhất) là chi nhánh chính.
+// Khách chọn chi nhánh khi gửi yêu cầu; admin lọc đơn theo chi nhánh.
+model ShopBranch {
+  id           String  @id @default(cuid())
+  name         String // "Suwon", "Ansan"…
+  // Để trống → trang khách dùng hotline chung ở ShopSettings.
+  phone        String  @default("")
+  phoneDisplay String  @default("")
+  address      String  @default("")
+  addressNote  String  @default("")
+  mapUrl       String  @default("") // link mở Google Maps
+  mapEmbedUrl  String  @default("") // src của iframe "Nhúng bản đồ" (chỉ nhận domain Google)
+  openHours    String  @default("")
+  sortOrder    Int     @default(0)
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([isActive, sortOrder])
+  @@map("shop_branches")
 }
 
 /* ------------------------------ Danh mục -------------------------------- */
@@ -188,6 +208,10 @@ model Order {
   phone        String
   address      String      @default("")
   note         String      @default("")
+  // Chi nhánh khách chọn phục vụ. SetNull + snapshot branchName để xóa chi nhánh không mất đơn.
+  branch       ShopBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId     String?
+  branchName   String      @default("")
   // Snapshot lúc đặt — đổi giá sau này không làm sai đơn cũ. null khi có dòng chưa có giá.
   totalPrice   Int?
   currency     String      @default("KRW")
@@ -202,6 +226,7 @@ model Order {
   @@index([status, createdAt])
   @@index([type, createdAt])
   @@index([phone])
+  @@index([branchId, createdAt])
   @@map("orders")
 }
 

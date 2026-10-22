@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET /api/orders?status=..&type=..&q=.. — admin xem danh sách (200 đơn mới nhất).
+// GET /api/orders?status=..&type=..&branch=..&q=.. — admin xem danh sách (200 đơn mới nhất).
+//   branch: id chi nhánh, hoặc "none" = đơn chưa gắn chi nhánh.
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin();
@@ -33,12 +34,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status");
     const type = searchParams.get("type");
+    const branch = searchParams.get("branch");
     const q = searchParams.get("q")?.trim();
 
     const list = await prisma.order.findMany({
       where: {
         ...(status && status in OrderStatus ? { status: status as OrderStatus } : {}),
         ...(type && type in OrderType ? { type: type as OrderType } : {}),
+        ...(branch ? { branchId: branch === "none" ? null : branch } : {}),
         ...(q
           ? {
               OR: [

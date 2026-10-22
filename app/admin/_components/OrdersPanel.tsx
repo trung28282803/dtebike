@@ -5,6 +5,7 @@ import type { OrderStatus } from "@prisma/client";
 import { money, fmtDateTime, ORDER_STATUS_LABEL, ORDER_TYPE_LABEL, telHref } from "@/lib/format";
 import { nextStatuses } from "@/lib/order-status";
 import { BRAND } from "@/lib/brand";
+import type { BranchDTO } from "@/lib/catalog";
 import { StatusBadge, apiCall, Modal } from "./ui";
 import Select from "@/components/Select";
 import { useDialog } from "@/components/Dialog";
@@ -32,6 +33,8 @@ interface Order {
   phone: string;
   address: string;
   note: string;
+  branchId: string | null;
+  branchName: string;
   totalPrice: number | null;
   currency: string;
   adminNote: string;
@@ -44,14 +47,17 @@ const STATUSES: OrderStatus[] = ["NEW", "CONTACTED", "CONFIRMED", "DELIVERED", "
 
 export default function OrdersPanel({
   currency,
+  branches,
   onNewCount,
 }: {
   currency: string;
+  branches: BranchDTO[];
   onNewCount?: (n: number) => void;
 }) {
   const dialog = useDialog();
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
+  const [branch, setBranch] = useState("");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +73,7 @@ export default function OrdersPanel({
       const qs = new URLSearchParams();
       if (status) qs.set("status", status);
       if (type) qs.set("type", type);
+      if (branch) qs.set("branch", branch);
       if (q.trim()) qs.set("q", q.trim());
       const r = await fetch(`/api/orders?${qs}`, { cache: "no-store" });
       const d = await r.json();
@@ -78,7 +85,7 @@ export default function OrdersPanel({
     } finally {
       setLoading(false);
     }
-  }, [status, type, q]);
+  }, [status, type, branch, q]);
 
   useEffect(() => {
     load();
@@ -189,17 +196,33 @@ export default function OrdersPanel({
             onChange={setType}
           />
         </div>
+        {branches.length > 0 && (
+          <div>
+            <label htmlFor="f-branch">Chi nhánh</label>
+            <Select
+              id="f-branch"
+              value={branch}
+              emptyLabel="Mọi chi nhánh"
+              options={[
+                ...branches.map((b) => ({ value: b.id, label: b.name, hint: b.isActive ? undefined : "đã ẩn" })),
+                { value: "none", label: "Chưa gắn chi nhánh" },
+              ]}
+              onChange={setBranch}
+            />
+          </div>
+        )}
         <div style={{ minWidth: 220 }}>
           <label htmlFor="f-q">Tìm mã / tên / SĐT</label>
           <input id="f-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`${BRAND.codePrefix}261021-1234`} />
         </div>
         <span className="spacer" />
-        {(status || type || q) && (
+        {(status || type || branch || q) && (
           <button
             className="ghost"
             onClick={() => {
               setStatus("");
               setType("");
+              setBranch("");
               setQ("");
             }}
           >
@@ -264,6 +287,11 @@ export default function OrdersPanel({
                         <span className={`badge ${o.type === "QUOTE" ? "b-contacted" : "b-off"}`} style={{ marginTop: 4 }}>
                           {ORDER_TYPE_LABEL[o.type]}
                         </span>
+                        {o.branchName && (
+                          <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                            📍 {o.branchName}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td data-label="Khách">
@@ -336,6 +364,7 @@ export default function OrdersPanel({
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <StatusBadge status={detail.status} />
             <span className="badge b-off">{ORDER_TYPE_LABEL[detail.type]}</span>
+            {detail.branchName && <span className="badge b-contacted">📍 {detail.branchName}</span>}
             <span className="muted" style={{ fontSize: 13 }}>
               {fmtDateTime(detail.createdAt)}
             </span>

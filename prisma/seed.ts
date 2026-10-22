@@ -16,9 +16,10 @@ async function main() {
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
   await prisma.shopService.deleteMany();
+  await prisma.shopBranch.deleteMany();
   await prisma.shopSettings.deleteMany();
 
-  /* ---------- Cấu hình cửa hàng ---------- */
+  /* ---------- Cấu hình chung của chuỗi ---------- */
   await prisma.shopSettings.create({
     data: {
       id: "default",
@@ -26,9 +27,6 @@ async function main() {
       slogan: "Xe điện Dũng Trần",
       phone: "01067232868",
       phoneDisplay: "010-6723-2868",
-      address: "경기도 수원시 장안구 연무로33 (Suwon, Gyeonggi-do)",
-      addressNote: "Vui lòng gọi trước khi đến để được hướng dẫn đường đi.",
-      openHours: "09:00 – 19:00 hằng ngày",
       heroEyebrow: "Xe điện Victory · Hàn Quốc",
       heroTitle: "Chọn chiếc xe phù hợp với hành trình của bạn.",
       heroSubtitle: "Xem các mẫu xe, lựa chọn dung lượng pin và gửi yêu cầu đặt hàng trực tiếp cho Dtebike.",
@@ -45,6 +43,23 @@ async function main() {
         "Giá và điều kiện bán hàng cần được cửa hàng xác nhận trước khi thanh toán. Chính sách bảo hành áp dụng theo điều kiện thực tế của người bán.",
       currency: "KRW",
     },
+  });
+
+  /* ---------- Chi nhánh: [tên, địa chỉ] — SĐT để trống → dùng hotline chung ---------- */
+  const branches: [string, string][] = [
+    ["Suwon (수원)", "수원시 매탄동 153-107"],
+    ["Cheongju (청주)", "청주시 북대동 865-2"],
+    ["Daejeon (대전)", "대전시 용전동 169-14"],
+    ["Gyeongsan (경산)", "경산시 임당동 645-11"],
+  ];
+  await prisma.shopBranch.createMany({
+    data: branches.map(([name, address], i) => ({
+      name,
+      address,
+      addressNote: "Vui lòng gọi trước khi đến để được hướng dẫn đường đi.",
+      openHours: "09:00 – 19:00 hằng ngày",
+      sortOrder: i + 1,
+    })),
   });
 
   /* ---------- Dịch vụ ---------- */
@@ -164,7 +179,7 @@ async function main() {
     });
   }
 
-  console.log(`Seed xong: ${vehicles.length} xe, ${accessories.length} phụ kiện, 12 danh mục, 3 dịch vụ.`);
+  console.log(`Seed xong: ${vehicles.length} xe, ${accessories.length} phụ kiện, 12 danh mục, 3 dịch vụ, ${branches.length} chi nhánh.`);
 }
 
 main()

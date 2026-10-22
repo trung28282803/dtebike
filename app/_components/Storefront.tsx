@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CatalogDTO, ProductDTO, VariantDTO } from "@/lib/catalog";
+import type { BranchDTO, CatalogDTO, ProductDTO, VariantDTO } from "@/lib/catalog";
 import { BRAND } from "@/lib/brand";
 import { money, telHref, smsHref, STOCK_LABEL } from "@/lib/format";
 import OrderModal, { type OrderDraft, type Ticket } from "./OrderModal";
 import { PhoneIcon, MessageIcon, MapPinIcon, ClockIcon, BikeIcon, WrenchIcon, BrandIcon } from "./Icons";
 
-/* Trang khách: hero → xe điện (lọc/tìm) → phụ kiện (theo nhóm) → dịch vụ → liên hệ.
-   Toàn bộ nội dung chữ lấy từ settings (admin sửa được), không hard-code. */
+/* Trang khách: hero → xe điện (lọc/tìm) → phụ kiện (theo nhóm) → dịch vụ → liên hệ (hệ thống chi nhánh).
+   Toàn bộ nội dung chữ lấy từ settings/branches (admin sửa được), không hard-code. */
 
 export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
-  const { settings, categories, products, services } = catalog;
+  const { settings, branches, categories, products, services } = catalog;
   const s = settings!;
   const cur = s.currency;
+  // Một chi nhánh: hiện gọn trong thẻ liên hệ như cửa hàng đơn. Nhiều: lưới "Hệ thống cửa hàng".
+  const single: BranchDTO | null = branches.length === 1 ? branches[0] : null;
+  const mapBranches = branches.filter((b) => b.mapEmbedUrl);
+  const [mapId, setMapId] = useState(mapBranches[0]?.id ?? "");
+  const mapBranch = mapBranches.find((b) => b.id === mapId) ?? mapBranches[0];
 
   const vehicles = useMemo(() => products.filter((p) => p.kind === "VEHICLE"), [products]);
   const accessories = useMemo(() => products.filter((p) => p.kind === "ACCESSORY"), [products]);
@@ -327,35 +332,44 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
             <div className="contact-card">
               <h3>{s.name}</h3>
               <dl>
-                <dt>Điện thoại</dt>
+                <dt>{branches.length > 1 ? "Hotline" : "Điện thoại"}</dt>
                 <dd>
                   <a className="big" href={telHref(s.phone)}>
                     {s.phoneDisplay}
                   </a>
                 </dd>
-                {s.address && (
+                {single?.address && (
                   <>
                     <dt>Địa chỉ</dt>
                     <dd>
-                      {s.mapUrl ? (
-                        <a href={s.mapUrl} target="_blank" rel="noreferrer">
-                          {s.address}
+                      {single.mapUrl ? (
+                        <a href={single.mapUrl} target="_blank" rel="noreferrer">
+                          {single.address}
                         </a>
                       ) : (
-                        s.address
+                        single.address
                       )}
-                      {s.addressNote && (
+                      {single.addressNote && (
                         <div className="hint" style={{ marginTop: 2 }}>
-                          {s.addressNote}
+                          {single.addressNote}
                         </div>
                       )}
                     </dd>
                   </>
                 )}
-                {s.openHours && (
+                {single?.openHours && (
                   <>
                     <dt>Giờ mở cửa</dt>
-                    <dd>{s.openHours}</dd>
+                    <dd>{single.openHours}</dd>
+                  </>
+                )}
+                {branches.length > 1 && (
+                  <>
+                    <dt>Cửa hàng</dt>
+                    <dd>
+                      {branches.length} chi nhánh — xem danh sách bên dưới, hoặc gọi hotline để được hướng dẫn chi nhánh gần
+                      bạn.
+                    </dd>
                   </>
                 )}
                 {s.shippingNote && (
@@ -422,16 +436,78 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
             </div>
           </div>
 
-          {s.mapEmbedUrl && (
-            <iframe
-              className="mapframe"
-              style={{ marginTop: 16 }}
-              src={s.mapEmbedUrl}
-              loading="lazy"
-              allowFullScreen
-              referrerPolicy="no-referrer-when-downgrade"
-              title={`Bản đồ ${s.name}`}
-            />
+          {branches.length > 1 && (
+            <>
+              <div className="agroup" id="branches">
+                Hệ thống cửa hàng ({branches.length})
+              </div>
+              <div className="branch-grid">
+                {branches.map((b) => (
+                  <article className="branch-card" key={b.id}>
+                    <h3>
+                      <MapPinIcon size={16} /> {b.name}
+                    </h3>
+                    {b.address && (
+                      <p className="addr">
+                        {b.mapUrl ? (
+                          <a href={b.mapUrl} target="_blank" rel="noreferrer">
+                            {b.address}
+                          </a>
+                        ) : (
+                          b.address
+                        )}
+                      </p>
+                    )}
+                    {b.addressNote && <p className="hint">{b.addressNote}</p>}
+                    {b.phoneDisplay && (
+                      <p className="meta">
+                        <PhoneIcon size={14} />
+                        <a href={telHref(b.phone)}>{b.phoneDisplay}</a>
+                      </p>
+                    )}
+                    {b.openHours && (
+                      <p className="meta">
+                        <ClockIcon size={14} />
+                        <span>{b.openHours}</span>
+                      </p>
+                    )}
+                    <div className="acts">
+                      <a className="btn btn-soft" href={telHref(b.phone || s.phone)}>
+                        <PhoneIcon size={15} /> Gọi
+                      </a>
+                      {b.mapUrl && (
+                        <a className="btn btn-ghost" href={b.mapUrl} target="_blank" rel="noreferrer">
+                          <BrandIcon name="maps" size={18} /> Chỉ đường
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          )}
+
+          {mapBranch && (
+            <>
+              {mapBranches.length > 1 && (
+                <div className="catchips" style={{ marginTop: 16 }} role="group" aria-label="Chọn bản đồ chi nhánh">
+                  {mapBranches.map((b) => (
+                    <button key={b.id} className={mapBranch.id === b.id ? "on" : ""} onClick={() => setMapId(b.id)}>
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <iframe
+                className="mapframe"
+                style={{ marginTop: mapBranches.length > 1 ? 10 : 16 }}
+                src={mapBranch.mapEmbedUrl}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                title={`Bản đồ ${single ? s.name : mapBranch.name}`}
+              />
+            </>
           )}
         </section>
       </main>
@@ -444,22 +520,28 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 <b style={{ color: "#fff", fontSize: 16 }}>{s.name}</b>
                 {s.slogan ? ` — ${s.slogan}` : ""}
               </p>
-              {s.address && (
-                <p className="iconline">
-                  <MapPinIcon size={16} />
-                  {s.mapUrl ? (
-                    <a href={s.mapUrl} target="_blank" rel="noreferrer">
-                      {s.address}
-                    </a>
-                  ) : (
-                    <span>{s.address}</span>
-                  )}
-                </p>
-              )}
-              {s.openHours && (
+              {branches
+                .filter((b) => b.address)
+                .map((b) => (
+                  <p className="iconline" key={b.id}>
+                    <MapPinIcon size={16} />
+                    {b.mapUrl ? (
+                      <a href={b.mapUrl} target="_blank" rel="noreferrer">
+                        {single ? "" : `${b.name}: `}
+                        {b.address}
+                      </a>
+                    ) : (
+                      <span>
+                        {single ? "" : `${b.name}: `}
+                        {b.address}
+                      </span>
+                    )}
+                  </p>
+                ))}
+              {single?.openHours && (
                 <p className="iconline">
                   <ClockIcon size={16} />
-                  <span>{s.openHours}</span>
+                  <span>{single.openHours}</span>
                 </p>
               )}
             </div>
@@ -519,11 +601,21 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                     </a>
                   </li>
                 )}
-                {s.mapUrl && (
+                {single?.mapUrl && (
                   <li>
-                    <a href={s.mapUrl} target="_blank" rel="noreferrer">
+                    <a href={single.mapUrl} target="_blank" rel="noreferrer">
                       <BrandIcon name="maps" size={22} />
                       Chỉ đường Google Maps
+                    </a>
+                  </li>
+                )}
+                {branches.length > 1 && (
+                  <li>
+                    <a href="#branches">
+                      <span className="ico">
+                        <MapPinIcon size={13} />
+                      </span>
+                      Hệ thống cửa hàng
                     </a>
                   </li>
                 )}
@@ -566,6 +658,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
         <OrderModal
           draft={draft}
           settings={s}
+          branches={branches}
           onClose={() => setDraft(null)}
           onDone={(t) => {
             setDraft(null);
@@ -592,6 +685,12 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 </dd>
                 <dt>Giá</dt>
                 <dd className="tabnum">{ticket.total == null ? "Cửa hàng sẽ báo" : money(ticket.total, cur)}</dd>
+                {ticket.branchName && (
+                  <>
+                    <dt>Cửa hàng</dt>
+                    <dd>{ticket.branchName}</dd>
+                  </>
+                )}
                 <dt>Khách</dt>
                 <dd>
                   {ticket.name} · {ticket.phone}

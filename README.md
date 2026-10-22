@@ -21,22 +21,24 @@ app/
   admin/
     login/                     Đăng nhập (mật khẩu env + JWT httpOnly cookie)
     page.tsx                   Trang quản trị (kiểm tra session ở server)
-    _components/               AdminShell + 6 tab: Đơn hàng, Xe điện, Phụ kiện, Danh mục, Dịch vụ, Cửa hàng
+    _components/               AdminShell + 7 tab: Đơn hàng, Xe điện, Phụ kiện, Danh mục, Dịch vụ, Chi nhánh, Cửa hàng
   api/
     catalog                    GET  — danh mục công khai
-    orders                     POST — khách gửi yêu cầu (rate-limit theo IP) · GET (admin) — danh sách + lọc
+    orders                     POST — khách gửi yêu cầu (rate-limit theo IP) · GET (admin) — danh sách + lọc (status/type/branch/q)
     orders/[id]                PATCH (admin) — { status, note } | { adminNote }
     admin/login · logout       POST
     admin/categories[/id]      POST · PATCH · DELETE
     admin/products[/id]        POST · PATCH · DELETE   (kèm variants[] + specs[], thay toàn bộ)
     admin/services[/id]        POST · PATCH · DELETE
-    admin/settings             PUT  — cấu hình cửa hàng (bản ghi đơn)
+    admin/branches[/id]        POST · PATCH · DELETE — chi nhánh (địa chỉ, SĐT, giờ mở cửa, bản đồ)
+    admin/settings             PUT  — cấu hình chung của chuỗi (bản ghi đơn)
     admin/upload               POST — upload ảnh lên Vercel Blob (multipart)
 lib/
   orders.ts                    ★ Tạo đơn (đối chiếu DB, snapshot giá, mã DT…) + chuyển trạng thái
   order-status.ts              Luồng trạng thái — không import Prisma, dùng được ở client
   catalog.ts                   Loader danh mục cho trang khách / admin (DTO phẳng)
   product-input.ts             Validate body sản phẩm (dùng chung POST/PATCH)
+  branch-input.ts              Validate body chi nhánh (dùng chung POST/PATCH)
   api.ts                       Validate input + map exception → HTTP status
   auth.ts / auth-token.ts      Auth Node runtime / Edge runtime
   rate-limit.ts                Giới hạn tần suất POST /api/orders (in-memory, theo IP)
@@ -45,7 +47,7 @@ lib/
 prisma/
   schema.prisma                Mô hình dữ liệu
   migrations/                  DDL (sinh bằng `prisma migrate diff`)
-  seed.ts                      Dữ liệu demo: 6 xe, 21 phụ kiện, 12 danh mục, 3 dịch vụ, cấu hình cửa hàng
+  seed.ts                      Dữ liệu demo: 6 xe, 21 phụ kiện, 12 danh mục, 3 dịch vụ, 4 chi nhánh, cấu hình chuỗi
 public/images/                 Ảnh xe (vehicles/) và phụ kiện (accessories/)
 scripts/
   apply-migrations.ts          npm run db:apply — áp migration qua cổng 443
@@ -60,13 +62,14 @@ middleware.ts                  Chặn /admin/* nếu chưa đăng nhập
 
 | Bảng | Vai trò |
 |---|---|
-| `shop_settings` | **Bản ghi đơn** (`id = "default"`): tên, SĐT, địa chỉ, hero, bảo hành, tiền tệ… — mọi chữ trên trang khách sửa ở admin |
+| `shop_settings` | **Bản ghi đơn** (`id = "default"`): phần chung của cả chuỗi — tên, hotline, mạng xã hội, hero, bảo hành, tiền tệ. Mọi chữ trên trang khách sửa ở admin |
+| `shop_branches` | **Chi nhánh**: tên, SĐT riêng (rỗng → dùng hotline), địa chỉ, giờ mở cửa, link + bản đồ nhúng, `sortOrder` (đứng đầu = chi nhánh chính), ẩn/hiện. 1 chi nhánh → trang khách hiện như cửa hàng đơn; ≥ 2 → lưới "Hệ thống cửa hàng" + chọn bản đồ |
 | `categories` | Danh mục, tách theo `kind` (VEHICLE / ACCESSORY) |
 | `products` | Xe hoặc phụ kiện: tên, slug, thương hiệu, ảnh, mô tả, nổi bật, ẩn/hiện |
 | `product_variants` | Phiên bản bán được. Xe: mỗi dung lượng pin một dòng (`voltageV`, `capacityAh`, `price`). Phụ kiện: thường 1 dòng “Tiêu chuẩn”; **`price = null` nghĩa là “hỏi giá”**. `stockStatus`: có sẵn / đặt trước / hết hàng. `UNIQUE(productId, name)` |
 | `product_specs` | Thông số kỹ thuật nhãn–giá trị, mỗi xe một bộ khác nhau |
 | `shop_services` | Các ô “Dịch vụ” (tư vấn pin, sửa chữa, giao hàng) |
-| `orders` | Yêu cầu của khách: `type` ORDER (đặt mua) / QUOTE (hỏi giá), `status`, snapshot `totalPrice` + `currency`, `adminNote` |
+| `orders` | Yêu cầu của khách: `type` ORDER (đặt mua) / QUOTE (hỏi giá), `status`, snapshot `totalPrice` + `currency`, `adminNote`. `branchId` (FK `ON DELETE SET NULL`) + snapshot `branchName`: chi nhánh khách chọn — chuỗi chỉ có 1 chi nhánh thì tự gán |
 | `order_items` | Dòng hàng — **snapshot** `productName`, `variantName`, `unitPrice`; FK `productId`/`variantId` `ON DELETE SET NULL` nên xóa sản phẩm không mất lịch sử đơn |
 | `order_status_logs` | Nhật ký đổi trạng thái (từ → đến, ghi chú, thời điểm) |
 
@@ -86,12 +89,16 @@ NEW ──► CONTACTED ──► CONFIRMED ──► DELIVERED
   mỗi lần chuyển ghi một dòng `order_status_logs`. DELIVERED/CANCELLED là trạng thái cuối.
 - `POST /api/orders` có rate-limit 8 yêu cầu / 10 phút / IP (in-memory, đủ chặn script
   đơn giản; cần chặt hơn thì dùng Upstash/Redis).
+- **Chi nhánh:** form đặt hàng hiện ô "Cửa hàng gần bạn" khi có ≥ 2 chi nhánh đang hoạt động
+  (không bắt buộc). Server kiểm tra chi nhánh tồn tại và đang hoạt động (404 nếu không), ghi
+  snapshot `branchName`. Admin lọc đơn theo chi nhánh (`?branch=<id>` hoặc `none`).
 
 ### Trang khách lấy gì từ DB
 
-Tất cả: tên/slogan/SĐT/địa chỉ, khối hero + 3 điểm nổi bật, danh sách xe (lọc theo danh
-mục, tìm tên) với từng phiên bản pin + giá, phụ kiện gộp theo danh mục, ô dịch vụ, bảo
-hành, dòng cuối trang. Admin đổi là trang khách đổi theo (trang là `force-dynamic`).
+Tất cả: tên/slogan/hotline, khối hero + 3 điểm nổi bật, danh sách xe (lọc theo danh
+mục, tìm tên) với từng phiên bản pin + giá, phụ kiện gộp theo danh mục, ô dịch vụ, danh
+sách chi nhánh (địa chỉ, SĐT, giờ mở cửa, bản đồ), bảo hành, dòng cuối trang. Admin đổi là
+trang khách đổi theo (trang là `force-dynamic`).
 
 ---
 
@@ -154,6 +161,8 @@ npm run dev         # http://localhost:3000  ·  admin: /admin
 ✓ chặn hủy đơn đã giao: Không chuyển được từ "DELIVERED" sang "CANCELLED".
 ✓ ghi đủ 4 dòng nhật ký trạng thái
 ✓ xóa sản phẩm vẫn giữ snapshot dòng đơn
+✓ chặn chi nhánh không tồn tại: Chi nhánh không còn hoạt động.
+✓ xóa chi nhánh vẫn giữ tên chi nhánh trên đơn
 Tất cả OK.
 ```
 
@@ -180,8 +189,8 @@ npm run db:apply
 5. Deploy (`npm run build` đã có `prisma generate`).
 6. Áp migration + seed production một lần từ máy local với `.env` trỏ production:
    `npm run db:apply` rồi `npm run db:seed` (chỉ lần đầu — seed **xóa sạch** bảng).
-7. Vào `/admin` → tab **Cửa hàng**: sửa tên, SĐT, địa chỉ, hero; tab **Xe điện / Phụ
-   kiện**: cập nhật giá thật.
+7. Vào `/admin` → tab **Cửa hàng**: sửa tên, hotline, hero; tab **Chi nhánh**: địa chỉ,
+   SĐT, giờ mở cửa, bản đồ từng cửa hàng; tab **Xe điện / Phụ kiện**: cập nhật giá thật.
 
 ### Ảnh sản phẩm — upload qua Vercel Blob
 

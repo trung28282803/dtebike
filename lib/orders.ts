@@ -21,6 +21,8 @@ export interface OrderInput {
   phone: string;
   address?: string | null;
   note?: string | null;
+  // Chi nhánh khách muốn được phục vụ. Bỏ trống: chuỗi chỉ có 1 chi nhánh thì tự gán, còn lại để trống.
+  branchId?: string | null;
   // ORDER: cần variantId. QUOTE: productId là đủ (variantId tùy chọn).
   items: { productId: string; variantId?: string | null; quantity?: number }[];
 }
@@ -63,6 +65,19 @@ export async function createOrder(input: OrderInput) {
   /* ---------- 2. Đối chiếu sản phẩm/phiên bản với DB — không tin FE ---------- */
   const settings = await prisma.shopSettings.findUnique({ where: { id: "default" }, select: { currency: true } });
   const currency = settings?.currency ?? "KRW";
+
+  // Chi nhánh: phải tồn tại và đang hoạt động. Không chọn mà chuỗi chỉ có 1 chi nhánh thì gán luôn.
+  let branch: { id: string; name: string } | null = null;
+  if (input.branchId) {
+    branch = await prisma.shopBranch.findFirst({
+      where: { id: String(input.branchId), isActive: true },
+      select: { id: true, name: true },
+    });
+    if (!branch) throw new OrderError("NOT_FOUND", "Chi nhánh không còn hoạt động.");
+  } else {
+    const active = await prisma.shopBranch.findMany({ where: { isActive: true }, select: { id: true, name: true }, take: 2 });
+    if (active.length === 1) branch = active[0];
+  }
 
   const lines: Prisma.OrderItemCreateWithoutOrderInput[] = [];
   let total: number | null = 0;
@@ -116,6 +131,7 @@ export async function createOrder(input: OrderInput) {
           phone,
           address,
           note,
+          ...(branch ? { branch: { connect: { id: branch.id } }, branchName: branch.name } : {}),
           totalPrice: total,
           currency,
           items: { create: lines },

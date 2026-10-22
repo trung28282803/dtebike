@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ProductDTO, SettingsDTO } from "@/lib/catalog";
+import type { BranchDTO, ProductDTO, SettingsDTO } from "@/lib/catalog";
 import { money, STOCK_LABEL } from "@/lib/format";
 import Select from "@/components/Select";
 import NumberInput from "@/components/NumberInput";
@@ -21,6 +21,7 @@ export interface Ticket {
   total: number | null;
   name: string;
   phone: string;
+  branchName: string;
   smsBody: string;
 }
 
@@ -29,11 +30,13 @@ export interface Ticket {
 export default function OrderModal({
   draft,
   settings,
+  branches,
   onClose,
   onDone,
 }: {
   draft: OrderDraft;
   settings: SettingsDTO;
+  branches: BranchDTO[];
   onClose: () => void;
   onDone: (t: Ticket) => void;
 }) {
@@ -41,6 +44,9 @@ export default function OrderModal({
   const cur = settings.currency;
 
   const [variantId, setVariantId] = useState(draft.variantId);
+  // Chi nhánh phục vụ: chỉ hỏi khi chuỗi có từ 2 chi nhánh; không bắt buộc (cửa hàng tự điều phối).
+  const [branchId, setBranchId] = useState("");
+  const branch = branches.find((b) => b.id === branchId);
   const [qty, setQty] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -90,6 +96,7 @@ export default function OrderModal({
           phone: phone.trim(),
           address: address.trim() || null,
           note: note.trim() || null,
+          branchId: branchId || null,
           items: [{ productId: product.id, variantId: variantId || null, quantity: qty }],
         }),
       });
@@ -104,6 +111,7 @@ export default function OrderModal({
         (total != null ? `Giá niêm yết: ${money(total, cur)}\n` : "") +
         `Họ tên: ${name.trim()}\nSĐT: ${phone.trim()}\n` +
         (address.trim() ? `Địa chỉ: ${address.trim()}\n` : "") +
+        (branch ? `Cửa hàng: ${branch.name}\n` : "") +
         (note.trim() ? `Ghi chú: ${note.trim()}\n` : "") +
         `Vui lòng xác nhận còn hàng, phí giao và bảo hành.`;
       onDone({
@@ -115,6 +123,7 @@ export default function OrderModal({
         total,
         name: name.trim(),
         phone: phone.trim(),
+        branchName: branch?.name ?? "",
         smsBody,
       });
     } catch {
@@ -223,6 +232,19 @@ export default function OrderModal({
               {touched && errors.address && <div className="err">{errors.address}</div>}
             </div>
           </div>
+
+          {branches.length > 1 && (
+            <div>
+              <label htmlFor="o-branch">Cửa hàng gần bạn</label>
+              <Select
+                id="o-branch"
+                value={branchId}
+                emptyLabel="Để cửa hàng sắp xếp"
+                options={branches.map((b) => ({ value: b.id, label: b.name, hint: b.address || undefined }))}
+                onChange={setBranchId}
+              />
+            </div>
+          )}
 
           <div>
             <label htmlFor="o-note">Ghi chú</label>

@@ -10,9 +10,10 @@ import OrdersPanel from "./OrdersPanel";
 import ProductsPanel from "./ProductsPanel";
 import CategoriesPanel from "./CategoriesPanel";
 import ServicesPanel from "./ServicesPanel";
+import BranchesPanel from "./BranchesPanel";
 import SettingsPanel from "./SettingsPanel";
 
-type Tab = "orders" | "vehicles" | "accessories" | "categories" | "services" | "settings";
+type Tab = "orders" | "vehicles" | "accessories" | "categories" | "services" | "branches" | "settings";
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "orders", label: "Đơn hàng" },
@@ -20,6 +21,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "accessories", label: "Phụ kiện" },
   { key: "categories", label: "Danh mục" },
   { key: "services", label: "Dịch vụ" },
+  { key: "branches", label: "Chi nhánh" },
   { key: "settings", label: "Cửa hàng" },
 ];
 
@@ -67,11 +69,12 @@ export default function AdminShell({ data }: { data: CatalogDTO }) {
           ))}
         </div>
 
-        {tab === "orders" && <OrdersPanel currency={data.settings?.currency ?? "KRW"} onNewCount={onNewCount} />}
+        {tab === "orders" && <OrdersPanel currency={data.settings?.currency ?? "KRW"} branches={data.branches} onNewCount={onNewCount} />}
         {tab === "vehicles" && <ProductsPanel kind="VEHICLE" data={data} />}
         {tab === "accessories" && <ProductsPanel kind="ACCESSORY" data={data} />}
         {tab === "categories" && <CategoriesPanel data={data} />}
         {tab === "services" && <ServicesPanel data={data} />}
+        {tab === "branches" && <BranchesPanel data={data} />}
         {tab === "settings" && <SettingsPanel settings={data.settings} />}
 
         <div className="foot">
