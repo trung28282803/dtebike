@@ -769,10 +769,25 @@ function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (p: ProductDTO) =>
         {p.name}
       </div>
     );
+  // div role=button thay vì <button>: Safari không resolve height:100% cho con của <button>,
+  // ảnh sẽ nở theo kích thước gốc và bị .pimg (overflow hidden) cắt mất.
   return (
-    <button type="button" className="imgbtn" onClick={() => onOpen(p)} aria-label={`Xem ảnh ${p.name}`} title="Xem ảnh đủ">
+    <div
+      className="imgbtn"
+      role="button"
+      tabIndex={0}
+      aria-label={`Xem ảnh ${p.name}`}
+      title="Xem ảnh đủ"
+      onClick={() => onOpen(p)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpen(p);
+        }
+      }}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={p.imageUrl} alt={p.imageAlt || p.name} loading="lazy" onError={() => setBroken(true)} />
-    </button>
+    </div>
   );
 }
