@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, str, optStr, int } from "@/lib/api";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         ...(b.isActive !== undefined ? { isActive: !!b.isActive } : {}),
       },
     });
+    bumpCatalog();
     return NextResponse.json(svc);
   } catch (e) {
     return toErrorResponse(e);
@@ -31,6 +33,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
     await requireAdmin();
     const { id } = await ctx.params;
     await prisma.shopService.delete({ where: { id } });
+    bumpCatalog();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return toErrorResponse(e);

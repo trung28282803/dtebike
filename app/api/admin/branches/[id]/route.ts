@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse } from "@/lib/api";
 import { branchInput } from "@/lib/branch-input";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const { id } = await ctx.params;
     const b = await req.json();
     const branch = await prisma.shopBranch.update({ where: { id }, data: branchInput(b, true) });
+    bumpCatalog();
     return NextResponse.json(branch);
   } catch (e) {
     return toErrorResponse(e);
@@ -24,6 +26,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
     await requireAdmin();
     const { id } = await ctx.params;
     await prisma.shopBranch.delete({ where: { id } });
+    bumpCatalog();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return toErrorResponse(e);

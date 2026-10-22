@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, str, optStr, int, bool } from "@/lib/api";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,7 @@ export async function POST(req: NextRequest) {
         isActive: bool(b.isActive, true),
       },
     });
+    bumpCatalog();
     return NextResponse.json(svc, { status: 201 });
   } catch (e) {
     return toErrorResponse(e);

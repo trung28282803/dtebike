@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, str, int, ValidationError } from "@/lib/api";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         ...(b.isActive !== undefined ? { isActive: !!b.isActive } : {}),
       },
     });
+    bumpCatalog();
     return NextResponse.json(cat);
   } catch (e) {
     return toErrorResponse(e);
@@ -36,6 +38,7 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
     if (used > 0) throw new ValidationError(`Danh mục còn ${used} sản phẩm — bỏ danh mục này khỏi các sản phẩm đó trước.`);
 
     await prisma.category.delete({ where: { id } });
+    bumpCatalog();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return toErrorResponse(e);

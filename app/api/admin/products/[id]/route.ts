@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, ValidationError } from "@/lib/api";
 import { parseProductBody, productInclude } from "@/lib/product-input";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -26,6 +27,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
         },
         include: productInclude,
       });
+      bumpCatalog();
       return NextResponse.json(p);
     }
 
@@ -56,6 +58,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       return tx.product.update({ where: { id }, data, include: productInclude });
     });
 
+    bumpCatalog();
     return NextResponse.json(product);
   } catch (e) {
     return toErrorResponse(e);
@@ -76,6 +79,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       );
 
     await prisma.product.delete({ where: { id } });
+    bumpCatalog();
     return NextResponse.json({ ok: true });
   } catch (e) {
     return toErrorResponse(e);

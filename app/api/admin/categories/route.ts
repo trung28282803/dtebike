@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, str, int, bool, enumOf } from "@/lib/api";
 import { uniqueSlug } from "@/lib/slug";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
         isActive: bool(b.isActive, true),
       },
     });
+    bumpCatalog();
     return NextResponse.json(cat, { status: 201 });
   } catch (e) {
     return toErrorResponse(e);

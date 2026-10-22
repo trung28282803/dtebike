@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse } from "@/lib/api";
 import { uniqueSlug } from "@/lib/slug";
 import { parseProductBody, productInclude } from "@/lib/product-input";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest) {
       },
       include: productInclude,
     });
+    bumpCatalog();
     return NextResponse.json(product, { status: 201 });
   } catch (e) {
     return toErrorResponse(e);

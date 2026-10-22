@@ -1,12 +1,13 @@
-import { getPublicCatalog } from "@/lib/catalog";
+import { getCachedPublicCatalog } from "@/lib/catalog-cache";
 import { BRAND } from "@/lib/brand";
 import Storefront from "./_components/Storefront";
 
-// Server Component: đọc danh mục trực tiếp qua Prisma (không tự gọi API của chính mình).
-export const dynamic = "force-dynamic";
+/* Server Component. Trang được render tĩnh và cache (ISR) 5 phút; admin ghi dữ liệu thì
+   bumpCatalog() xóa cache ngay. Nhờ vậy khách không phải chờ Neon thức dậy. */
+export const revalidate = 300;
 
 export default async function HomePage() {
-  const catalog = await getPublicCatalog();
+  const catalog = await getCachedPublicCatalog();
 
   if (!catalog.settings) {
     return (

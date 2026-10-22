@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { toErrorResponse, str, optStr, optUrl, optEmail, int, enumOf, strList, phoneStr } from "@/lib/api";
+import { bumpCatalog } from "@/lib/catalog-cache";
 
 export const runtime = "nodejs";
 
@@ -44,6 +45,7 @@ export async function PUT(req: NextRequest) {
       update: data,
       create: { id: "default", ...data },
     });
+    bumpCatalog();
     return NextResponse.json(settings);
   } catch (e) {
     return toErrorResponse(e);

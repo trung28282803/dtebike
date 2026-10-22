@@ -227,6 +227,23 @@ song được. Ảnh cũ trên Blob **không tự xóa** khi đổi ảnh; dọn
 
 ---
 
+## 4b. Hiệu năng — cache trang khách
+
+Neon free tier **ngủ sau 5 phút** không truy vấn; đánh thức mất 2–10 s. Để khách không
+phải chờ:
+
+- Trang `/` là **ISR** (`revalidate = 300`) và dữ liệu danh mục đi qua `unstable_cache`
+  tag `catalog` ([lib/catalog-cache.ts](lib/catalog-cache.ts)) → HTML được CDN Vercel
+  phục vụ, không chạm DB.
+- **Mọi API admin ghi dữ liệu** (sản phẩm, danh mục, dịch vụ, chi nhánh, cấu hình) gọi
+  `bumpCatalog()` sau khi ghi → xóa cache ngay, khách thấy thay đổi tức thì. Khi thêm
+  route admin mới có ghi dữ liệu, **nhớ gọi `bumpCatalog()`**.
+- `GET /api/catalog` thêm `s-maxage=60`.
+- Ảnh tĩnh trong `public/images` đã nén (≤ 1200 px, mozjpeg q78). Ảnh upload từ admin
+  được thu nhỏ ở trình duyệt trước khi lên Blob.
+- Lưu ý: vì `/` prerender lúc build nên build cần kết nối được Neon; nếu build Vercel
+  lỗi DB thoáng qua, chỉ cần **Redeploy**.
+
 ## 5. Gỡ lỗi build trên Vercel
 
 - **`Thiếu biến môi trường DATABASE_URL` khi build** — [lib/prisma.ts](lib/prisma.ts)
