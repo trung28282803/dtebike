@@ -5,6 +5,7 @@ import type { BranchDTO, CatalogDTO, ProductDTO, VariantDTO } from "@/lib/catalo
 import { BRAND } from "@/lib/brand";
 import { money, telHref, smsHref, STOCK_LABEL } from "@/lib/format";
 import OrderModal, { type OrderDraft, type Ticket } from "./OrderModal";
+import Lightbox from "./Lightbox";
 import { PhoneIcon, MessageIcon, MapPinIcon, ClockIcon, BikeIcon, WrenchIcon, BrandIcon } from "./Icons";
 
 /* Trang khách: hero → xe điện (lọc/tìm) → phụ kiện (theo nhóm) → dịch vụ → liên hệ (hệ thống chi nhánh).
@@ -37,6 +38,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<OrderDraft | null>(null);
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  // Sản phẩm đang xem ảnh phóng to.
+  const [preview, setPreview] = useState<ProductDTO | null>(null);
 
   // Thanh dính đáy trên mobile cần thêm padding cho <body>.
   useEffect(() => {
@@ -181,7 +184,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                   <article className="pcard" key={p.id}>
                     <div className="pimg">
                       {p.isFeatured && <span className="ribbon">Nổi bật</span>}
-                      <ProductImage p={p} />
+                      <ProductImage p={p} onOpen={setPreview} />
                     </div>
                     <div className="pbody">
                       <h3>{p.name}</h3>
@@ -278,7 +281,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                     return (
                       <article className="acard" key={p.id}>
                         <div className="aimg">
-                          <ProductImage p={p} />
+                          <ProductImage p={p} onOpen={setPreview} />
                         </div>
                         <div className="abody">
                           <h3>{p.name}</h3>
@@ -692,6 +695,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
         </a>
       </div>
 
+      {preview && <Lightbox product={preview} onClose={() => setPreview(null)} />}
+
       {draft && (
         <OrderModal
           draft={draft}
@@ -754,8 +759,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   );
 }
 
-// Ảnh sản phẩm: lỗi tải → ô dự phòng có tên, không để khung trống.
-function ProductImage({ p }: { p: ProductDTO }) {
+// Ảnh sản phẩm: lỗi tải → ô dự phòng có tên, không để khung trống. Bấm vào ảnh → xem ảnh đủ (Lightbox).
+function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (p: ProductDTO) => void }) {
   const [broken, setBroken] = useState(false);
   if (!p.imageUrl || broken)
     return (
@@ -764,6 +769,10 @@ function ProductImage({ p }: { p: ProductDTO }) {
         {p.name}
       </div>
     );
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={p.imageUrl} alt={p.imageAlt || p.name} loading="lazy" onError={() => setBroken(true)} />;
+  return (
+    <button type="button" className="imgbtn" onClick={() => onOpen(p)} aria-label={`Xem ảnh ${p.name}`} title="Xem ảnh đủ">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={p.imageUrl} alt={p.imageAlt || p.name} loading="lazy" onError={() => setBroken(true)} />
+    </button>
+  );
 }
