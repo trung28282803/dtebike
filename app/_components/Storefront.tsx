@@ -16,7 +16,13 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   const cur = s.currency;
   // Một chi nhánh: hiện gọn trong thẻ liên hệ như cửa hàng đơn. Nhiều: lưới "Hệ thống cửa hàng".
   const single: BranchDTO | null = branches.length === 1 ? branches[0] : null;
-  const mapBranches = branches.filter((b) => b.mapEmbedUrl);
+  // Naver Map không nhúng iframe được: có toạ độ + server có key → ảnh Static Map (/api/map/:id);
+  // không thì rơi về Google embed (nếu admin dán). Link mở bản đồ: link admin nhập, hoặc tìm địa chỉ trên Naver.
+  const hasNaverImage = (b: BranchDTO) => catalog.naverMap && b.lat != null && b.lng != null;
+  const mapHref = (b: BranchDTO) =>
+    b.mapUrl || (b.address ? `https://map.naver.com/p/search/${encodeURIComponent(b.address)}` : "");
+  const isNaverHref = (url: string) => /naver\.(com|me)\//i.test(url);
+  const mapBranches = branches.filter((b) => hasNaverImage(b) || b.mapEmbedUrl);
   const [mapId, setMapId] = useState(mapBranches[0]?.id ?? "");
   const mapBranch = mapBranches.find((b) => b.id === mapId) ?? mapBranches[0];
 
@@ -342,8 +348,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                   <>
                     <dt>Địa chỉ</dt>
                     <dd>
-                      {single.mapUrl ? (
-                        <a href={single.mapUrl} target="_blank" rel="noreferrer">
+                      {mapHref(single) ? (
+                        <a href={mapHref(single)} target="_blank" rel="noreferrer">
                           {single.address}
                         </a>
                       ) : (
@@ -406,6 +412,11 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                     <BrandIcon name="facebook" /> Facebook
                   </a>
                 )}
+                {s.tiktokUrl && (
+                  <a className="btn btn-ghost" href={s.tiktokUrl} target="_blank" rel="noreferrer">
+                    <BrandIcon name="tiktok" /> TikTok
+                  </a>
+                )}
                 {s.email && (
                   <a className="btn btn-ghost" href={`mailto:${s.email}`}>
                     <BrandIcon name="gmail" /> Email
@@ -449,8 +460,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                     </h3>
                     {b.address && (
                       <p className="addr">
-                        {b.mapUrl ? (
-                          <a href={b.mapUrl} target="_blank" rel="noreferrer">
+                        {mapHref(b) ? (
+                          <a href={mapHref(b)} target="_blank" rel="noreferrer">
                             {b.address}
                           </a>
                         ) : (
@@ -475,9 +486,9 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                       <a className="btn btn-soft" href={telHref(b.phone || s.phone)}>
                         <PhoneIcon size={15} /> Gọi
                       </a>
-                      {b.mapUrl && (
-                        <a className="btn btn-ghost" href={b.mapUrl} target="_blank" rel="noreferrer">
-                          <BrandIcon name="maps" size={18} /> Chỉ đường
+                      {mapHref(b) && (
+                        <a className="btn btn-ghost" href={mapHref(b)} target="_blank" rel="noreferrer">
+                          <BrandIcon name={isNaverHref(mapHref(b)) ? "naver" : "maps"} size={18} /> Chỉ đường
                         </a>
                       )}
                     </div>
@@ -498,15 +509,34 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                   ))}
                 </div>
               )}
-              <iframe
-                className="mapframe"
-                style={{ marginTop: mapBranches.length > 1 ? 10 : 16 }}
-                src={mapBranch.mapEmbedUrl}
-                loading="lazy"
-                allowFullScreen
-                referrerPolicy="no-referrer-when-downgrade"
-                title={`Bản đồ ${single ? s.name : mapBranch.name}`}
-              />
+              {hasNaverImage(mapBranch) ? (
+                <a
+                  className="maplink"
+                  style={{ marginTop: mapBranches.length > 1 ? 10 : 16 }}
+                  href={mapHref(mapBranch)}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Mở Naver Map"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    className="mapimg"
+                    src={`/api/map/${mapBranch.id}`}
+                    alt={`Bản đồ ${single ? s.name : mapBranch.name}`}
+                    loading="lazy"
+                  />
+                </a>
+              ) : (
+                <iframe
+                  className="mapframe"
+                  style={{ marginTop: mapBranches.length > 1 ? 10 : 16 }}
+                  src={mapBranch.mapEmbedUrl}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title={`Bản đồ ${single ? s.name : mapBranch.name}`}
+                />
+              )}
             </>
           )}
         </section>
@@ -525,8 +555,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 .map((b) => (
                   <p className="iconline" key={b.id}>
                     <MapPinIcon size={16} />
-                    {b.mapUrl ? (
-                      <a href={b.mapUrl} target="_blank" rel="noreferrer">
+                    {mapHref(b) ? (
+                      <a href={mapHref(b)} target="_blank" rel="noreferrer">
                         {single ? "" : `${b.name}: `}
                         {b.address}
                       </a>
@@ -601,11 +631,19 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                     </a>
                   </li>
                 )}
-                {single?.mapUrl && (
+                {s.tiktokUrl && (
                   <li>
-                    <a href={single.mapUrl} target="_blank" rel="noreferrer">
-                      <BrandIcon name="maps" size={22} />
-                      Chỉ đường Google Maps
+                    <a href={s.tiktokUrl} target="_blank" rel="noreferrer">
+                      <BrandIcon name="tiktok" size={22} />
+                      TikTok
+                    </a>
+                  </li>
+                )}
+                {single && mapHref(single) && (
+                  <li>
+                    <a href={mapHref(single)} target="_blank" rel="noreferrer">
+                      <BrandIcon name={isNaverHref(mapHref(single)) ? "naver" : "maps"} size={22} />
+                      {isNaverHref(mapHref(single)) ? "Chỉ đường Naver Map" : "Chỉ đường Google Maps"}
                     </a>
                   </li>
                 )}

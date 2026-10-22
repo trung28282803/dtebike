@@ -118,7 +118,9 @@ export const BRAND_ICON = {
   gmail: "/icons/gmail.svg",
   zalo: "/icons/zalo.svg",
   kakao: "/icons/kakaotalk.svg",
+  tiktok: "/icons/tiktok.svg",
   maps: "/icons/google-maps.svg",
+  naver: "/icons/naver-map.svg",
 } as const;
 
 export const BrandIcon = ({ name, size = 20 }: { name: keyof typeof BRAND_ICON; size?: number }) => (

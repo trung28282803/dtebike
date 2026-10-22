@@ -837,6 +837,19 @@ button {
     height: 260px;
   }
 }
+/* Ảnh Naver Static Map — bấm vào mở Naver Map */
+.maplink {
+  display: block;
+}
+.mapimg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg-2);
+}
 
 /* Hệ thống cửa hàng — lưới chi nhánh (chỉ hiện khi có ≥ 2 chi nhánh) */
 .branch-grid {

@@ -1,4 +1,4 @@
-import { str, optStr, optUrl, mapEmbed, int, bool, ValidationError } from "./api";
+import { str, optStr, optUrl, optFloat, mapEmbed, int, bool, ValidationError } from "./api";
 
 /* Validate body chi nhánh — dùng chung POST (đủ trường) và PATCH (chỉ các trường gửi lên). */
 
@@ -16,8 +16,18 @@ export function branchInput(b: any, partial: boolean) {
     phoneFields = { phoneDisplay, phone: phoneDisplay.replace(/[^\d+]/g, "") };
   }
 
+  // Toạ độ: có thì phải đủ cả vĩ độ lẫn kinh độ (Static Map cần cả hai).
+  let coords: { lat: number | null; lng: number | null } | undefined;
+  if (has("lat") || has("lng")) {
+    const lat = optFloat(b.lat, "vĩ độ", -90, 90);
+    const lng = optFloat(b.lng, "kinh độ", -180, 180);
+    if ((lat == null) !== (lng == null)) throw new ValidationError("Toạ độ cần đủ cả vĩ độ và kinh độ.");
+    coords = { lat, lng };
+  }
+
   return {
     ...(has("name") ? { name: str(b.name, "tên chi nhánh", 80) } : {}),
+    ...(coords ?? {}),
     ...(phoneFields ?? {}),
     ...(has("address") ? { address: optStr(b.address, "địa chỉ", 300) } : {}),
     ...(has("addressNote") ? { addressNote: optStr(b.addressNote, "ghi chú địa chỉ", 300) } : {}),

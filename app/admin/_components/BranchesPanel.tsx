@@ -7,7 +7,10 @@ import { Modal, apiCall } from "./ui";
 import NumberInput from "@/components/NumberInput";
 import { useDialog } from "@/components/Dialog";
 
-type Draft = Omit<BranchDTO, "id" | "phone"> & { id?: string };
+// Toạ độ giữ dạng chuỗi khi đang gõ ("37." không bị cắt); server parse và validate.
+type Draft = Omit<BranchDTO, "id" | "phone" | "lat" | "lng"> & { id?: string; lat: string; lng: string };
+
+const toDraft = (b: BranchDTO): Draft => ({ ...b, lat: b.lat?.toString() ?? "", lng: b.lng?.toString() ?? "" });
 
 // Dán nguyên thẻ <iframe> → chỉ giữ phần src; dán link thì giữ nguyên.
 const extractEmbedSrc = (raw: string) => {
@@ -22,6 +25,8 @@ const EMPTY: Draft = {
   addressNote: "",
   mapUrl: "",
   mapEmbedUrl: "",
+  lat: "",
+  lng: "",
   openHours: "",
   sortOrder: 0,
   isActive: true,
@@ -49,7 +54,8 @@ export default function BranchesPanel({ data }: { data: CatalogDTO }) {
 
   const save = async () => {
     if (!draft) return;
-    const { id, ...body } = draft;
+    const { id, lat, lng, ...rest } = draft;
+    const body = { ...rest, lat: lat.trim() || null, lng: lng.trim() || null };
     const ok = id
       ? await run(() => apiCall(`/api/admin/branches/${id}`, "PATCH", body))
       : await run(() => apiCall("/api/admin/branches", "POST", body));
@@ -130,9 +136,9 @@ export default function BranchesPanel({ data }: { data: CatalogDTO }) {
                     </td>
                     <td data-label="Liên hệ" className="tabnum">
                       {b.phoneDisplay || <span className="muted">{hotline ? `Hotline ${hotline}` : "—"}</span>}
-                      {b.mapEmbedUrl && (
+                      {(b.lat != null || b.mapEmbedUrl) && (
                         <div className="muted" style={{ fontSize: 12 }}>
-                          Có bản đồ nhúng
+                          {b.lat != null ? "Có toạ độ Naver" : "Có bản đồ nhúng Google"}
                         </div>
                       )}
                     </td>
@@ -141,7 +147,7 @@ export default function BranchesPanel({ data }: { data: CatalogDTO }) {
                     </td>
                     <td>
                       <div className="actions">
-                        <button className="mini ed" disabled={busy} onClick={() => setDraft({ ...b })}>
+                        <button className="mini ed" disabled={busy} onClick={() => setDraft(toDraft(b))}>
                           Sửa
                         </button>
                         <button className="mini" disabled={busy} onClick={() => run(() => apiCall(`/api/admin/branches/${b.id}`, "PATCH", { isActive: !b.isActive }))}>
@@ -207,12 +213,27 @@ export default function BranchesPanel({ data }: { data: CatalogDTO }) {
               <input id="br-addrnote" value={draft.addressNote} maxLength={300} placeholder="Gần ga…, gọi trước khi đến" onChange={(e) => setDraft({ ...draft, addressNote: e.target.value })} />
             </div>
             <div>
-              <label htmlFor="br-map">Link bản đồ</label>
-              <input id="br-map" value={draft.mapUrl} maxLength={500} placeholder="https://maps…" onChange={(e) => setDraft({ ...draft, mapUrl: e.target.value })} />
+              <label htmlFor="br-map">Link bản đồ (Naver Map / Google Maps)</label>
+              <input id="br-map" value={draft.mapUrl} maxLength={500} placeholder="https://map.naver.com/p/… hoặc https://naver.me/…" onChange={(e) => setDraft({ ...draft, mapUrl: e.target.value })} />
+              <div className="hint">Naver Map → Chia sẻ (공유) → sao chép link. Để trống thì nút “Chỉ đường” tự tìm địa chỉ trên Naver.</div>
+            </div>
+          </div>
+          <div className="row c2">
+            <div>
+              <label htmlFor="br-lat">Vĩ độ (lat)</label>
+              <input id="br-lat" value={draft.lat} inputMode="decimal" maxLength={20} placeholder="37.2636" onChange={(e) => setDraft({ ...draft, lat: e.target.value })} />
+            </div>
+            <div>
+              <label htmlFor="br-lng">Kinh độ (lng)</label>
+              <input id="br-lng" value={draft.lng} inputMode="decimal" maxLength={20} placeholder="127.0286" onChange={(e) => setDraft({ ...draft, lng: e.target.value })} />
+              <div className="hint">
+                Dùng cho ảnh bản đồ Naver trên trang khách (cần cấu hình NAVER_MAP_CLIENT_ID). Lấy toạ độ: Google Maps → chuột
+                phải tại cửa hàng → dòng số đầu tiên.
+              </div>
             </div>
           </div>
           <div>
-            <label htmlFor="br-embed">Bản đồ nhúng (Google Maps → Chia sẻ → Nhúng bản đồ → dán nguyên thẻ &lt;iframe&gt;)</label>
+            <label htmlFor="br-embed">Bản đồ nhúng Google (tùy chọn — Naver không cho nhúng iframe)</label>
             <textarea
               id="br-embed"
               value={draft.mapEmbedUrl}

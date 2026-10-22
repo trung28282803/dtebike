@@ -25,6 +25,7 @@ export async function PUT(req: NextRequest) {
       kakaoUrl: optUrl(b.kakaoUrl, "link KakaoTalk"),
       facebookUrl: optUrl(b.facebookUrl, "link Facebook"),
       messengerUrl: optUrl(b.messengerUrl, "link Messenger"),
+      tiktokUrl: optUrl(b.tiktokUrl, "link TikTok"),
       email: optEmail(b.email),
       heroEyebrow: optStr(b.heroEyebrow, "dòng nhỏ hero", 80),
       heroTitle: optStr(b.heroTitle, "tiêu đề hero", 160),

@@ -17,6 +17,7 @@ const EMPTY: SettingsDTO = {
   kakaoUrl: "",
   facebookUrl: "",
   messengerUrl: "",
+  tiktokUrl: "",
   email: "",
   heroEyebrow: "",
   heroTitle: "",
@@ -118,6 +119,10 @@ export default function SettingsPanel({ settings }: { settings: SettingsDTO | nu
             <div>
               <label htmlFor="st-kakao">KakaoTalk</label>
               <input id="st-kakao" value={f.kakaoUrl} maxLength={300} placeholder="https://open.kakao.com/…" onChange={(e) => set("kakaoUrl", e.target.value)} />
+            </div>
+            <div>
+              <label htmlFor="st-tiktok">TikTok</label>
+              <input id="st-tiktok" value={f.tiktokUrl} maxLength={300} placeholder="https://www.tiktok.com/@…" onChange={(e) => set("tiktokUrl", e.target.value)} />
             </div>
           </div>
           <div className="hint" style={{ margin: 0 }}>

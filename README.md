@@ -33,6 +33,7 @@ app/
     admin/branches[/id]        POST · PATCH · DELETE — chi nhánh (địa chỉ, SĐT, giờ mở cửa, bản đồ)
     admin/settings             PUT  — cấu hình chung của chuỗi (bản ghi đơn)
     admin/upload               POST — upload ảnh lên Vercel Blob (multipart)
+    map/[id]                   GET  — ảnh Naver Static Map của chi nhánh (công khai, cần NAVER_MAP_*)
 lib/
   orders.ts                    ★ Tạo đơn (đối chiếu DB, snapshot giá, mã DT…) + chuyển trạng thái
   order-status.ts              Luồng trạng thái — không import Prisma, dùng được ở client
@@ -63,7 +64,7 @@ middleware.ts                  Chặn /admin/* nếu chưa đăng nhập
 | Bảng | Vai trò |
 |---|---|
 | `shop_settings` | **Bản ghi đơn** (`id = "default"`): phần chung của cả chuỗi — tên, hotline, mạng xã hội, hero, bảo hành, tiền tệ. Mọi chữ trên trang khách sửa ở admin |
-| `shop_branches` | **Chi nhánh**: tên, SĐT riêng (rỗng → dùng hotline), địa chỉ, giờ mở cửa, link + bản đồ nhúng, `sortOrder` (đứng đầu = chi nhánh chính), ẩn/hiện. 1 chi nhánh → trang khách hiện như cửa hàng đơn; ≥ 2 → lưới "Hệ thống cửa hàng" + chọn bản đồ |
+| `shop_branches` | **Chi nhánh**: tên, SĐT riêng (rỗng → dùng hotline), địa chỉ, giờ mở cửa, link bản đồ (Naver/Google), toạ độ `lat/lng` (ảnh Naver Static Map), Google embed tùy chọn, `sortOrder` (đứng đầu = chi nhánh chính), ẩn/hiện. 1 chi nhánh → trang khách hiện như cửa hàng đơn; ≥ 2 → lưới "Hệ thống cửa hàng" + chọn bản đồ |
 | `categories` | Danh mục, tách theo `kind` (VEHICLE / ACCESSORY) |
 | `products` | Xe hoặc phụ kiện: tên, slug, thương hiệu, ảnh, mô tả, nổi bật, ẩn/hiện |
 | `product_variants` | Phiên bản bán được. Xe: mỗi dung lượng pin một dòng (`voltageV`, `capacityAh`, `price`). Phụ kiện: thường 1 dòng “Tiêu chuẩn”; **`price = null` nghĩa là “hỏi giá”**. `stockStatus`: có sẵn / đặt trước / hết hàng. `UNIQUE(productId, name)` |
@@ -92,6 +93,19 @@ NEW ──► CONTACTED ──► CONFIRMED ──► DELIVERED
 - **Chi nhánh:** form đặt hàng hiện ô "Cửa hàng gần bạn" khi có ≥ 2 chi nhánh đang hoạt động
   (không bắt buộc). Server kiểm tra chi nhánh tồn tại và đang hoạt động (404 nếu không), ghi
   snapshot `branchName`. Admin lọc đơn theo chi nhánh (`?branch=<id>` hoặc `none`).
+
+### Bản đồ: Naver Map (khách ở Hàn Quốc)
+
+Naver Map **không cho nhúng iframe** như Google, nên có 2 mức:
+
+1. **Link** (mặc định, không cần key): nút "Chỉ đường" mở `mapUrl` admin dán (Naver Map →
+   공유 → link `map.naver.com/p/…` hoặc `naver.me/…`); để trống thì tự mở
+   `map.naver.com/p/search/<địa chỉ>`.
+2. **Ảnh Naver Static Map** (tùy chọn): đặt `NAVER_MAP_CLIENT_ID` + `NAVER_MAP_CLIENT_SECRET`
+   (NCP Console → Maps → Application, bật Static Map) và nhập `lat/lng` cho chi nhánh → trang
+   khách hiện ảnh bản đồ có marker qua `GET /api/map/:branchId` ([lib/naver-map.ts](lib/naver-map.ts)
+   proxy, secret không ra trình duyệt, cache 1 ngày). Chưa có key → bỏ qua, rơi về Google embed
+   nếu admin dán. Miễn phí cho tài khoản NCP chính (primary account) — xem bảng giá NCP trước khi bật.
 
 ### Trang khách lấy gì từ DB
 

@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { isNaverMapEnabled } from "./naver-map";
 import type { Prisma, ProductKind, StockStatus } from "@prisma/client";
 
 /* DTO phẳng, đã serialize — dùng chung cho trang khách (Server Component → Client) và API. */
@@ -12,6 +13,7 @@ export interface SettingsDTO {
   kakaoUrl: string;
   facebookUrl: string;
   messengerUrl: string;
+  tiktokUrl: string;
   email: string;
   heroEyebrow: string;
   heroTitle: string;
@@ -91,6 +93,8 @@ export interface BranchDTO {
   addressNote: string;
   mapUrl: string;
   mapEmbedUrl: string;
+  lat: number | null;
+  lng: number | null;
   openHours: string;
   sortOrder: number;
   isActive: boolean;
@@ -98,6 +102,8 @@ export interface BranchDTO {
 
 export interface CatalogDTO {
   settings: SettingsDTO | null;
+  // true khi server có NAVER_MAP_CLIENT_ID/SECRET → chi nhánh có toạ độ hiện ảnh /api/map/:id.
+  naverMap: boolean;
   branches: BranchDTO[];
   categories: CategoryDTO[];
   products: ProductDTO[];
@@ -113,6 +119,7 @@ const settingsSelect = {
   kakaoUrl: true,
   facebookUrl: true,
   messengerUrl: true,
+  tiktokUrl: true,
   email: true,
   heroEyebrow: true,
   heroTitle: true,
@@ -179,6 +186,8 @@ const toBranch = (b: Prisma.ShopBranchGetPayload<object>): BranchDTO => ({
   addressNote: b.addressNote,
   mapUrl: b.mapUrl,
   mapEmbedUrl: b.mapEmbedUrl,
+  lat: b.lat,
+  lng: b.lng,
   openHours: b.openHours,
   sortOrder: b.sortOrder,
   isActive: b.isActive,
@@ -203,6 +212,7 @@ export async function getPublicCatalog(): Promise<CatalogDTO> {
 
   return {
     settings,
+    naverMap: isNaverMapEnabled(),
     branches: branches.map(toBranch),
     categories: categories.map((c) => ({
       id: c.id,
@@ -240,6 +250,7 @@ export async function getAdminCatalog(): Promise<CatalogDTO> {
 
   return {
     settings,
+    naverMap: isNaverMapEnabled(),
     branches: branches.map(toBranch),
     categories: categories.map((c) => ({
       id: c.id,

@@ -59,6 +59,7 @@ model ShopSettings {
   kakaoUrl     String  @default("")
   facebookUrl  String  @default("")
   messengerUrl String  @default("")
+  tiktokUrl    String  @default("")
   email        String  @default("")
 
   // Khối hero đầu trang.
@@ -92,8 +93,11 @@ model ShopBranch {
   phoneDisplay String  @default("")
   address      String  @default("")
   addressNote  String  @default("")
-  mapUrl       String  @default("") // link mở Google Maps
-  mapEmbedUrl  String  @default("") // src của iframe "Nhúng bản đồ" (chỉ nhận domain Google)
+  mapUrl       String  @default("") // link mở Naver Map (map.naver.com / naver.me) hoặc Google Maps
+  mapEmbedUrl  String  @default("") // src iframe Google "Nhúng bản đồ" — tùy chọn; Naver không cho nhúng iframe
+  // Toạ độ WGS84 — dùng cho ảnh Naver Static Map (cần NAVER_MAP_CLIENT_ID/SECRET). null = không có.
+  lat          Float?
+  lng          Float?
   openHours    String  @default("")
   sortOrder    Int     @default(0)
   isActive     Boolean @default(true)
