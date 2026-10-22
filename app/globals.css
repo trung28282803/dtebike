@@ -133,9 +133,11 @@ button {
   place-items: center;
   background: var(--brand-grad);
   color: #fff;
-  font-weight: 800;
-  font-size: 20px;
   box-shadow: 0 2px 8px rgba(11, 107, 83, 0.35);
+}
+/* Cùng hình với favicon (app/icon.svg): xe trắng trên nền gradient. */
+.brand .mark svg {
+  display: block;
 }
 .brand b {
   display: block;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRAND } from "@/lib/brand";
 import type { CatalogDTO } from "@/lib/catalog";
+import { BikeIcon } from "@/app/_components/Icons";
 import { DialogProvider } from "@/components/Dialog";
 import OrdersPanel from "./OrdersPanel";
 import ProductsPanel from "./ProductsPanel";
@@ -44,7 +45,9 @@ export default function AdminShell({ data }: { data: CatalogDTO }) {
       <div className="wrap wide">
         <header className="admin-top">
           <div className="brand">
-            <div className="mark">{BRAND.mark}</div>
+            <div className="mark" aria-hidden="true">
+              <BikeIcon size={26} strokeWidth={2.2} />
+            </div>
             <div>
               <b>{data.settings?.name || BRAND.short}</b>
               <span>{BRAND.taglineAdmin}</span>

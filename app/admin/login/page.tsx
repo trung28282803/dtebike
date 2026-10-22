@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { BikeIcon } from "@/app/_components/Icons";
 import LoginForm from "./login-form";
 
 export const metadata = { title: `Đăng nhập — ${BRAND.full}` };
@@ -10,7 +11,9 @@ export default function AdminLoginPage() {
     <div className="wrap">
       <header className="admin-top">
         <div className="brand">
-          <div className="mark">{BRAND.mark}</div>
+          <div className="mark" aria-hidden="true">
+            <BikeIcon size={26} strokeWidth={2.2} />
+          </div>
           <div>
             <b>{BRAND.short}</b>
             <span>{BRAND.taglineAdmin}</span>

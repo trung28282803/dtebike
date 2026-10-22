@@ -92,7 +92,9 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
         <div className="wrap">
           <nav className="topbar" aria-label="Điều hướng chính">
             <a className="brand" href="#top">
-              <div className="mark">{BRAND.mark}</div>
+              <div className="mark" aria-hidden="true">
+                <BikeIcon size={26} strokeWidth={2.2} />
+              </div>
               <div>
                 <b>{s.name}</b>
                 <span>{s.slogan || BRAND.taglineClient}</span>

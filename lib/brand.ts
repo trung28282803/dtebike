@@ -5,7 +5,7 @@ export const BRAND = {
   name: "Dtebike",
   full: "Dtebike — Xe điện Dũng Trần",
   short: "Dtebike",
-  mark: "D", // chữ trong logo
+  // Logo: ô gradient + BikeIcon (cùng hình với favicon app/icon.svg) — xem class .brand .mark.
   taglineClient: "Xe điện Dũng Trần",
   taglineAdmin: "Trang quản trị",
   // Tiền tố mã đơn: DT + yymmdd + 4 số → DT261021-4821
