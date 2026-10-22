@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
 import { BRAND } from "@/lib/brand";
+import SiteAnalytics from "./_components/SiteAnalytics";
 import "./globals.css";
 
 /* Be Vietnam Pro: thiết kế riêng cho dấu tiếng Việt, có đủ 400–800 cho cả thân
@@ -26,7 +27,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="vi" className={beVietnam.variable}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <SiteAnalytics />
+      </body>
     </html>
   );
 }
