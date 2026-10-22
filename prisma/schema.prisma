@@ -120,17 +120,28 @@ model Category {
   slug      String      @unique
   sortOrder Int         @default(0)
   isActive  Boolean     @default(true)
-  products  Product[]
+  products  ProductCategory[]
 
   @@index([kind, sortOrder])
   @@map("categories")
 }
 
+// N-N: một sản phẩm thuộc nhiều danh mục (ví dụ "Phanh" và "Khuyến mãi"), một danh mục
+// nhiều sản phẩm. Bảng nối tường minh để chủ động index/migration; xóa bên nào cũng tự gỡ cặp.
+model ProductCategory {
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+
+  @@id([productId, categoryId])
+  @@index([categoryId])
+  @@map("product_categories")
+}
+
 model Product {
   id          String      @id @default(cuid())
   kind        ProductKind
-  category    Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId  String?
   brand       String      @default("")
   name        String
   slug        String      @unique
@@ -144,12 +155,12 @@ model Product {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  categories ProductCategory[]
   variants   ProductVariant[]
   specs      ProductSpec[]
   orderItems OrderItem[]
 
   @@index([kind, isActive, sortOrder])
-  @@index([categoryId])
   @@map("products")
 }
 

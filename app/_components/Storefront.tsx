@@ -48,7 +48,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   }, []);
 
   const shownVehicles = vehicles.filter((p) => {
-    if (cat && p.categoryId !== cat) return false;
+    if (cat && !p.categoryIds.includes(cat)) return false;
     const k = q.trim().toLowerCase();
     return !k || p.name.toLowerCase().includes(k) || p.brand.toLowerCase().includes(k);
   });
@@ -77,9 +77,10 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
       items: [],
     }));
     const other: ProductDTO[] = [];
+    // Sản phẩm thuộc nhiều danh mục → xuất hiện ở mọi nhóm tương ứng; không thuộc nhóm nào → "Khác".
     for (const p of accessories) {
-      const g = groups.find((x) => x.key === p.categoryId);
-      if (g) g.items.push(p);
+      const mine = groups.filter((x) => p.categoryIds.includes(x.key));
+      if (mine.length) mine.forEach((g) => g.items.push(p));
       else other.push(p);
     }
     if (other.length) groups.push({ key: "other", title: "Khác", items: other });
@@ -165,7 +166,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                 Tất cả ({vehicles.length})
               </button>
               {vehicleCats.map((c) => {
-                const n = vehicles.filter((p) => p.categoryId === c.id).length;
+                const n = vehicles.filter((p) => p.categoryIds.includes(c.id)).length;
                 return (
                   <button key={c.id} className={cat === c.id ? "on" : ""} onClick={() => setCat(c.id)}>
                     {c.name} ({n})
@@ -279,7 +280,10 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
                   {g.items.map((p) => {
                     const v = p.variants[0];
                     const price = p.variants.length === 1 ? v?.price ?? null : null;
-                    const catName = accessoryCats.find((c) => c.id === p.categoryId)?.name;
+                    const catName = accessoryCats
+                      .filter((c) => p.categoryIds.includes(c.id))
+                      .map((c) => c.name)
+                      .join(" · ");
                     return (
                       <article className="acard" key={p.id}>
                         <div className="aimg">

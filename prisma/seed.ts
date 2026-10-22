@@ -12,6 +12,7 @@ async function main() {
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.productSpec.deleteMany();
+  await prisma.productCategory.deleteMany();
   await prisma.productVariant.deleteMany();
   await prisma.product.deleteMany();
   await prisma.category.deleteMany();
@@ -105,7 +106,7 @@ async function main() {
     await prisma.product.create({
       data: {
         kind: "VEHICLE",
-        categoryId,
+        categories: { create: [{ categoryId }] },
         brand: "Victory",
         name,
         slug: slugify(name),
@@ -167,7 +168,7 @@ async function main() {
     await prisma.product.create({
       data: {
         kind: "ACCESSORY",
-        categoryId,
+        categories: { create: [{ categoryId }] },
         name,
         slug: slugify(name),
         summary,

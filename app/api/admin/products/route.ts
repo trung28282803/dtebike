@@ -11,12 +11,13 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     await requireAdmin();
-    const { variants, specs, ...data } = await parseProductBody(await req.json());
+    const { variants, specs, categoryIds, ...data } = await parseProductBody(await req.json());
 
     const product = await prisma.product.create({
       data: {
         ...data,
         slug: await uniqueSlug(data.name, async (s) => !!(await prisma.product.findUnique({ where: { slug: s } }))),
+        categories: { create: categoryIds.map((categoryId) => ({ categoryId })) },
         variants: { create: variants.map(({ id: _id, ...v }) => v) },
         specs: { create: specs },
       },

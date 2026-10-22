@@ -1,6 +1,6 @@
 import { ProductKind, StockStatus, type Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
-import { str, optStr, int, optInt, optFloat, bool, enumOf, ValidationError } from "./api";
+import { str, optStr, strList, int, optInt, optFloat, bool, enumOf, ValidationError } from "./api";
 
 /* Validate body sản phẩm dùng chung cho POST và PATCH — phiên bản và thông số gửi
    nguyên danh sách, server thay toàn bộ (đơn giản, không cần diff từng dòng). */
@@ -31,11 +31,12 @@ const MAX_PRICE = 1_000_000_000;
 export async function parseProductBody(b: any) {
   const kind = enumOf(b.kind, "loại sản phẩm", Object.values(ProductKind));
 
-  const categoryId = b.categoryId ? str(b.categoryId, "danh mục", 40) : null;
-  if (categoryId) {
-    const cat = await prisma.category.findUnique({ where: { id: categoryId }, select: { kind: true } });
-    if (!cat) throw new ValidationError("Danh mục không tồn tại.");
-    if (cat.kind !== kind) throw new ValidationError("Danh mục không cùng loại với sản phẩm.");
+  // Danh mục: danh sách id, mọi id phải tồn tại và cùng kind với sản phẩm.
+  const categoryIds = [...new Set(strList(b.categoryIds, "danh mục", 30, 40))];
+  if (categoryIds.length) {
+    const cats = await prisma.category.findMany({ where: { id: { in: categoryIds } }, select: { kind: true } });
+    if (cats.length !== categoryIds.length) throw new ValidationError("Có danh mục không tồn tại.");
+    if (cats.some((c) => c.kind !== kind)) throw new ValidationError("Có danh mục không cùng loại với sản phẩm.");
   }
 
   const rawVariants: unknown[] = Array.isArray(b.variants) ? b.variants : [];
@@ -67,7 +68,7 @@ export async function parseProductBody(b: any) {
 
   return {
     kind,
-    categoryId,
+    categoryIds,
     brand: optStr(b.brand, "thương hiệu", 80),
     name: str(b.name, "tên sản phẩm", 160),
     summary: optStr(b.summary, "mô tả ngắn", 160),
@@ -83,6 +84,7 @@ export async function parseProductBody(b: any) {
 }
 
 export const productInclude = {
+  categories: { select: { categoryId: true } },
   variants: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] },
   specs: { orderBy: [{ sortOrder: "asc" }] },
 } satisfies Prisma.ProductInclude;

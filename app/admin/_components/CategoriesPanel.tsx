@@ -53,7 +53,7 @@ export default function CategoriesPanel({ data }: { data: CatalogDTO }) {
   };
 
   const remove = async (c: CategoryDTO) => {
-    const n = data.products.filter((p) => p.categoryId === c.id).length;
+    const n = data.products.filter((p) => p.categoryIds.includes(c.id)).length;
     const ok = await dialog.confirm({
       title: "Xóa danh mục?",
       message: (
@@ -101,7 +101,7 @@ export default function CategoriesPanel({ data }: { data: CatalogDTO }) {
                   <table>
                     <tbody>
                       {rows.map((c) => {
-                        const n = data.products.filter((p) => p.categoryId === c.id).length;
+                        const n = data.products.filter((p) => p.categoryIds.includes(c.id)).length;
                         return (
                           <tr key={c.id}>
                             <td style={{ padding: "10px 6px" }}>
@@ -146,7 +146,8 @@ export default function CategoriesPanel({ data }: { data: CatalogDTO }) {
         })}
       </div>
       <div className="note">
-        <b>Ẩn danh mục</b> chỉ bỏ bộ lọc/nhóm trên trang khách; sản phẩm trong đó vẫn hiện (ở nhóm “Khác” với phụ kiện).
+        Một sản phẩm có thể thuộc <b>nhiều danh mục</b> (chọn trong form sản phẩm). <b>Ẩn danh mục</b> chỉ bỏ bộ
+        lọc/nhóm đó trên trang khách; sản phẩm vẫn hiện ở các danh mục còn lại (hoặc nhóm “Khác” với phụ kiện).
       </div>
     </div>
   );

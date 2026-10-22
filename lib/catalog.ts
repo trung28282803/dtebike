@@ -50,7 +50,7 @@ export interface SpecDTO {
 export interface ProductDTO {
   id: string;
   kind: ProductKind;
-  categoryId: string | null;
+  categoryIds: string[]; // N-N — một sản phẩm có thể nằm ở nhiều danh mục
   brand: string;
   name: string;
   slug: string;
@@ -134,6 +134,7 @@ const settingsSelect = {
 } as const;
 
 const productInclude = {
+  categories: { select: { categoryId: true } },
   variants: { orderBy: [{ sortOrder: "asc" }, { name: "asc" }] },
   specs: { orderBy: [{ sortOrder: "asc" }, { label: "asc" }] },
 } satisfies Prisma.ProductInclude;
@@ -143,7 +144,7 @@ type ProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
 const toProduct = (p: ProductRow, onlyActiveVariants: boolean): ProductDTO => ({
   id: p.id,
   kind: p.kind,
-  categoryId: p.categoryId,
+  categoryIds: p.categories.map((c) => c.categoryId),
   brand: p.brand,
   name: p.name,
   slug: p.slug,
@@ -207,7 +208,7 @@ export async function getPublicCatalog(): Promise<CatalogDTO> {
     prisma.shopService.findMany({ where: { isActive: true }, orderBy: [{ sortOrder: "asc" }, { title: "asc" }] }),
   ]);
 
-  // Sản phẩm thuộc danh mục đã ẩn thì coi như không có danh mục (vẫn hiện, không lọc được).
+  // Danh mục đã ẩn bị loại khỏi danh sách của sản phẩm (sản phẩm vẫn hiện, chỉ không lọc được theo đó).
   const catIds = new Set(categories.map((c) => c.id));
 
   return {
@@ -224,7 +225,7 @@ export async function getPublicCatalog(): Promise<CatalogDTO> {
     })),
     products: products.map((p) => {
       const dto = toProduct(p, true);
-      if (dto.categoryId && !catIds.has(dto.categoryId)) dto.categoryId = null;
+      dto.categoryIds = dto.categoryIds.filter((id) => catIds.has(id));
       return dto;
     }),
     services: services.map((s) => ({

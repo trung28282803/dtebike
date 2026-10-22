@@ -29,12 +29,17 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       return NextResponse.json(p);
     }
 
-    const { variants, specs, ...data } = await parseProductBody(b);
+    const { variants, specs, categoryIds, ...data } = await parseProductBody(b);
 
     const product = await prisma.$transaction(async (tx) => {
       const existing = await tx.product.findUnique({ where: { id }, select: { kind: true } });
       if (!existing) throw new ValidationError("Sản phẩm không tồn tại.");
       if (existing.kind !== data.kind) throw new ValidationError("Không đổi được loại sản phẩm (xe ↔ phụ kiện).");
+
+      // Danh mục (N-N): thay toàn bộ danh sách.
+      await tx.productCategory.deleteMany({ where: { productId: id } });
+      if (categoryIds.length)
+        await tx.productCategory.createMany({ data: categoryIds.map((categoryId) => ({ productId: id, categoryId })) });
 
       // Phiên bản: giữ id cũ (đơn hàng đang tham chiếu) → update; id mới → create; thiếu → delete.
       const keepIds = variants.filter((v) => v.id).map((v) => v.id!);

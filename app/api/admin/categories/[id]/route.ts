@@ -32,8 +32,8 @@ export async function DELETE(_req: NextRequest, ctx: { params: Promise<{ id: str
     await requireAdmin();
     const { id } = await ctx.params;
 
-    const used = await prisma.product.count({ where: { categoryId: id } });
-    if (used > 0) throw new ValidationError(`Danh mục còn ${used} sản phẩm — chuyển sản phẩm sang danh mục khác trước.`);
+    const used = await prisma.productCategory.count({ where: { categoryId: id } });
+    if (used > 0) throw new ValidationError(`Danh mục còn ${used} sản phẩm — bỏ danh mục này khỏi các sản phẩm đó trước.`);
 
     await prisma.category.delete({ where: { id } });
     return NextResponse.json({ ok: true });

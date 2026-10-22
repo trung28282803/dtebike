@@ -2140,6 +2140,41 @@ tbody tr:hover td {
     justify-self: end;
   }
 }
+/* Danh sách tick nhiều lựa chọn (gán sản phẩm ↔ danh mục) */
+.picker {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+}
+.picker .opt {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 13px;
+  font-size: 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--surface-2);
+  margin: 0;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink);
+  font-weight: 400;
+}
+.picker .opt:hover {
+  background: var(--surface-2);
+}
+.picker input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--brand);
+}
+
 .check {
   display: flex;
   align-items: center;

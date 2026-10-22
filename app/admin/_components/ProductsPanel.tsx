@@ -27,7 +27,7 @@ type VariantDraft = {
 type SpecDraft = { key: string; label: string; value: string };
 type Draft = {
   id?: string;
-  categoryId: string;
+  categoryIds: string[];
   brand: string;
   name: string;
   summary: string;
@@ -102,7 +102,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
 
   const openNew = () =>
     setDraft({
-      categoryId: categories[0]?.id || "",
+      categoryIds: [],
       brand: isVehicle ? "Victory" : "",
       name: "",
       summary: "",
@@ -119,7 +119,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
   const openEdit = (p: ProductDTO) =>
     setDraft({
       id: p.id,
-      categoryId: p.categoryId || "",
+      categoryIds: [...p.categoryIds],
       brand: p.brand,
       name: p.name,
       summary: p.summary,
@@ -148,7 +148,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
     if (!draft) return;
     const body = {
       kind,
-      categoryId: draft.categoryId || null,
+      categoryIds: draft.categoryIds,
       brand: draft.brand.trim(),
       name: draft.name.trim(),
       summary: draft.summary.trim(),
@@ -212,7 +212,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
   };
 
   const shown = products.filter((p) => {
-    if (filterCat && p.categoryId !== filterCat) return false;
+    if (filterCat && !p.categoryIds.includes(filterCat)) return false;
     const k = q.trim().toLowerCase();
     return !k || p.name.toLowerCase().includes(k) || p.brand.toLowerCase().includes(k);
   });
@@ -295,7 +295,19 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
                         </div>
                       </div>
                     </td>
-                    <td data-label="Danh mục">{catName(p.categoryId) || <span className="muted">—</span>}</td>
+                    <td data-label="Danh mục">
+                      {p.categoryIds.length === 0 ? (
+                        <span className="muted">—</span>
+                      ) : (
+                        <div className="chips">
+                          {p.categoryIds.map((id) => (
+                            <span className="chip" key={id}>
+                              {catName(id) || "?"}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
                     <td data-label="Phiên bản">
                       <div className="chips">
                         {p.variants.map((v) => (
@@ -376,14 +388,36 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
 
           <div className="row c2">
             <div>
-              <label htmlFor="pd-cat">Danh mục</label>
-              <Select
-                id="pd-cat"
-                value={draft.categoryId}
-                emptyLabel="— Không có —"
-                options={categories.map((c) => ({ value: c.id, label: c.name, hint: c.isActive ? undefined : "đã ẩn" }))}
-                onChange={(v) => setDraft({ ...draft, categoryId: v })}
-              />
+              <label>Danh mục (chọn một hoặc nhiều)</label>
+              <div className="picker">
+                {categories.length === 0 ? (
+                  <div className="opt muted" style={{ cursor: "default" }}>
+                    Chưa có danh mục — thêm ở tab Danh mục.
+                  </div>
+                ) : (
+                  categories.map((c) => (
+                    <label className="opt" key={c.id}>
+                      <input
+                        type="checkbox"
+                        checked={draft.categoryIds.includes(c.id)}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            categoryIds: e.target.checked
+                              ? [...draft.categoryIds, c.id]
+                              : draft.categoryIds.filter((x) => x !== c.id),
+                          })
+                        }
+                      />
+                      <span>
+                        {c.name}
+                        {!c.isActive && <span className="muted"> · đã ẩn</span>}
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+              <div className="hint">Đã chọn {draft.categoryIds.length}/{categories.length}.</div>
             </div>
             <div>
               <label htmlFor="pd-order">Thứ tự hiển thị</label>
