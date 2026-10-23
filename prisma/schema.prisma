@@ -147,8 +147,9 @@ model Product {
   slug        String      @unique
   summary     String      @default("") // một dòng dưới tên ("Phụ tùng phanh", "Chọn dung lượng pin")
   description String      @default("")
-  imageUrl    String      @default("")
+  imageUrl    String      @default("") // ảnh chính (thẻ, đơn hàng)
   imageAlt    String      @default("")
+  images      String[]    @default([]) // ảnh phụ theo thứ tự — trang khách gộp [imageUrl, ...images] thành slider
   sortOrder   Int         @default(0)
   isFeatured  Boolean     @default(false)
   isActive    Boolean     @default(true)

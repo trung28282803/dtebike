@@ -58,6 +58,7 @@ export interface ProductDTO {
   description: string;
   imageUrl: string;
   imageAlt: string;
+  images: string[]; // ảnh phụ; slider trên trang khách = [imageUrl, ...images]
   sortOrder: number;
   isFeatured: boolean;
   isActive: boolean;
@@ -152,6 +153,7 @@ const toProduct = (p: ProductRow, onlyActiveVariants: boolean): ProductDTO => ({
   description: p.description,
   imageUrl: p.imageUrl,
   imageAlt: p.imageAlt,
+  images: p.images,
   sortOrder: p.sortOrder,
   isFeatured: p.isFeatured,
   isActive: p.isActive,

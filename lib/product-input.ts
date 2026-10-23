@@ -26,6 +26,7 @@ export interface SpecInput {
 
 const MAX_VARIANTS = 30;
 const MAX_SPECS = 30;
+const MAX_IMAGES = 12; // ảnh phụ, chưa tính ảnh chính
 const MAX_PRICE = 1_000_000_000;
 
 export async function parseProductBody(b: any) {
@@ -75,6 +76,7 @@ export async function parseProductBody(b: any) {
     description: optStr(b.description, "mô tả", 4000),
     imageUrl: optStr(b.imageUrl, "ảnh", 500),
     imageAlt: optStr(b.imageAlt, "mô tả ảnh", 160),
+    images: strList(b.images, "ảnh phụ", MAX_IMAGES, 500),
     sortOrder: b.sortOrder == null ? 0 : int(b.sortOrder, "thứ tự", 0, 9999),
     isFeatured: bool(b.isFeatured, false),
     isActive: bool(b.isActive, true),

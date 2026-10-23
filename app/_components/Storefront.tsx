@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { BranchDTO, CatalogDTO, ProductDTO, VariantDTO } from "@/lib/catalog";
 import { BRAND } from "@/lib/brand";
 import { money, telHref, smsHref, STOCK_LABEL } from "@/lib/format";
 import OrderModal, { type OrderDraft, type Ticket } from "./OrderModal";
-import Lightbox from "./Lightbox";
+import Lightbox, { productImages } from "./Lightbox";
 import { PhoneIcon, MessageIcon, MapPinIcon, ClockIcon, BikeIcon, WrenchIcon, BrandIcon } from "./Icons";
 
 /* Trang khách: hero → xe điện (lọc/tìm) → phụ kiện (theo nhóm) → dịch vụ → liên hệ (hệ thống chi nhánh).
@@ -38,8 +38,8 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   const [picked, setPicked] = useState<Record<string, string>>({});
   const [draft, setDraft] = useState<OrderDraft | null>(null);
   const [ticket, setTicket] = useState<Ticket | null>(null);
-  // Sản phẩm đang xem ảnh phóng to.
-  const [preview, setPreview] = useState<ProductDTO | null>(null);
+  // Sản phẩm (và ảnh thứ mấy) đang xem phóng to.
+  const [preview, setPreview] = useState<Preview | null>(null);
 
   // Thanh dính đáy trên mobile cần thêm padding cho <body>.
   useEffect(() => {
@@ -701,7 +701,7 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
         </a>
       </div>
 
-      {preview && <Lightbox product={preview} onClose={() => setPreview(null)} />}
+      {preview && <Lightbox product={preview.product} index={preview.index} onClose={() => setPreview(null)} />}
 
       {draft && (
         <OrderModal
@@ -765,16 +765,33 @@ export default function Storefront({ catalog }: { catalog: CatalogDTO }) {
   );
 }
 
+type Preview = { product: ProductDTO; index: number };
+
 // Ảnh sản phẩm: lỗi tải → ô dự phòng có tên, không để khung trống. Bấm vào ảnh → xem ảnh đủ (Lightbox).
-function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (p: ProductDTO) => void }) {
+// Nhiều ảnh → slider: vuốt (scroll-snap) trên mobile, mũi tên trên desktop, chấm chỉ vị trí.
+function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (v: Preview) => void }) {
   const [broken, setBroken] = useState(false);
-  if (!p.imageUrl || broken)
+  const [idx, setIdx] = useState(0);
+  const slidesRef = useRef<HTMLDivElement>(null);
+  const images = productImages(p);
+
+  if (images.length === 0 || broken)
     return (
       <div className="fallback">
         <b aria-hidden="true">{p.kind === "VEHICLE" ? <BikeIcon size={40} strokeWidth={1.5} /> : <WrenchIcon size={40} strokeWidth={1.5} />}</b>
         {p.name}
       </div>
     );
+
+  const open = () => onOpen({ product: p, index: idx });
+  const scrollTo = (i: number) => {
+    const el = slidesRef.current;
+    if (!el) return;
+    const n = (i + images.length) % images.length;
+    el.scrollTo({ left: n * el.clientWidth, behavior: "smooth" });
+    setIdx(n);
+  };
+
   // div role=button thay vì <button>: Safari không resolve height:100% cho con của <button>,
   // ảnh sẽ nở theo kích thước gốc và bị .pimg (overflow hidden) cắt mất.
   return (
@@ -784,16 +801,59 @@ function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (p: ProductDTO) =>
       tabIndex={0}
       aria-label={`Xem ảnh ${p.name}`}
       title="Xem ảnh đủ"
-      onClick={() => onOpen(p)}
+      onClick={open}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onOpen(p);
-        }
+          open();
+        } else if (images.length > 1 && e.key === "ArrowRight") scrollTo(idx + 1);
+        else if (images.length > 1 && e.key === "ArrowLeft") scrollTo(idx - 1);
       }}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={p.imageUrl} alt={p.imageAlt || p.name} loading="lazy" onError={() => setBroken(true)} />
+      {images.length === 1 ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={images[0]} alt={p.imageAlt || p.name} loading="lazy" onError={() => setBroken(true)} />
+      ) : (
+        <>
+          <div
+            className="slides"
+            ref={slidesRef}
+            onScroll={(e) => {
+              const el = e.currentTarget;
+              const n = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
+              if (n !== idx) setIdx(n);
+            }}
+          >
+            {images.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={src + i}
+                src={src}
+                alt={i === 0 ? p.imageAlt || p.name : `${p.name} — ảnh ${i + 1}`}
+                loading={i === 0 ? "lazy" : "lazy"}
+                onError={() => i === 0 && setBroken(true)}
+              />
+            ))}
+          </div>
+          <button type="button" className="sarrow prev" aria-label="Ảnh trước" onClick={(e) => (e.stopPropagation(), scrollTo(idx - 1))}>
+            ‹
+          </button>
+          <button type="button" className="sarrow next" aria-label="Ảnh sau" onClick={(e) => (e.stopPropagation(), scrollTo(idx + 1))}>
+            ›
+          </button>
+          <div className="sdots" aria-hidden="true">
+            {images.map((_, i) => (
+              <button
+                type="button"
+                key={i}
+                className={i === idx ? "on" : ""}
+                tabIndex={-1}
+                onClick={(e) => (e.stopPropagation(), scrollTo(i))}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

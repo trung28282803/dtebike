@@ -67,7 +67,7 @@ middleware.ts                  Chặn /admin/* nếu chưa đăng nhập
 | `shop_branches` | **Chi nhánh**: tên, SĐT riêng (rỗng → dùng hotline), địa chỉ, giờ mở cửa, link bản đồ (Naver/Google), toạ độ `lat/lng` (ảnh Naver Static Map), Google embed tùy chọn, `sortOrder` (đứng đầu = chi nhánh chính), ẩn/hiện. 1 chi nhánh → trang khách hiện như cửa hàng đơn; ≥ 2 → lưới "Hệ thống cửa hàng" + chọn bản đồ |
 | `categories` | Danh mục, tách theo `kind` (VEHICLE / ACCESSORY) |
 | `product_categories` | **N-N sản phẩm ↔ danh mục** — PK ghép `(productId, categoryId)`, xóa bên nào cũng tự gỡ cặp. Phụ kiện thuộc nhiều danh mục hiện ở mọi nhóm tương ứng |
-| `products` | Xe hoặc phụ kiện: tên, slug, thương hiệu, ảnh, mô tả, nổi bật, ẩn/hiện |
+| `products` | Xe hoặc phụ kiện: tên, slug, thương hiệu, ảnh chính `imageUrl` + ảnh phụ `images[]` (≤ 12; trang khách gộp thành slider trên thẻ, Lightbox chuyển ảnh), mô tả, nổi bật, ẩn/hiện |
 | `product_variants` | Phiên bản bán được. Xe: mỗi dung lượng pin một dòng (`voltageV`, `capacityAh`, `price`). Phụ kiện: thường 1 dòng “Tiêu chuẩn”; **`price = null` nghĩa là “hỏi giá”**. `stockStatus`: có sẵn / đặt trước / hết hàng. `UNIQUE(productId, name)` |
 | `product_specs` | Thông số kỹ thuật nhãn–giá trị, mỗi xe một bộ khác nhau |
 | `shop_services` | Các ô “Dịch vụ” (tư vấn pin, sửa chữa, giao hàng) |

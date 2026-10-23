@@ -32,8 +32,9 @@ type Draft = {
   name: string;
   summary: string;
   description: string;
-  imageUrl: string;
+  imageUrl: string; // ảnh chính
   imageAlt: string;
+  images: string[]; // ảnh phụ, theo thứ tự
   sortOrder: number;
   isFeatured: boolean;
   isActive: boolean;
@@ -41,7 +42,16 @@ type Draft = {
   specs: SpecDraft[];
 };
 
+const MAX_IMAGES = 12; // ảnh phụ — trùng với lib/product-input.ts
+
 const uid = () => Math.random().toString(36).slice(2, 9);
+// Chuyển phần tử từ vị trí from → to (danh sách mới).
+const move = <T,>(arr: T[], from: number, to: number) => {
+  const out = [...arr];
+  const [x] = out.splice(from, 1);
+  out.splice(to, 0, x);
+  return out;
+};
 const STOCKS: StockStatus[] = ["IN_STOCK", "PRE_ORDER", "OUT_OF_STOCK"];
 
 const blankVariant = (name = ""): VariantDraft => ({
@@ -74,18 +84,31 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
   const [uploadError, setUploadError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const upload = async (file: File) => {
+  // Tải nhiều ảnh: chưa có ảnh chính → ảnh đầu làm ảnh chính, còn lại vào ảnh phụ.
+  // Tải tuần tự để không dồn nhiều request lớn cùng lúc; lỗi một ảnh thì vẫn giữ các ảnh đã xong.
+  const upload = async (files: File[]) => {
     setUploading(true);
     setUploadError("");
     try {
-      const url = await uploadImage(file, isVehicle ? "vehicles" : "accessories");
-      setDraft((d) => d && { ...d, imageUrl: url });
+      for (const file of files) {
+        const url = await uploadImage(file, isVehicle ? "vehicles" : "accessories");
+        setDraft((d) => {
+          if (!d) return d;
+          if (!d.imageUrl) return { ...d, imageUrl: url };
+          if (d.images.length >= MAX_IMAGES) throw new Error(`Tối đa ${MAX_IMAGES} ảnh phụ.`);
+          return { ...d, images: [...d.images, url] };
+        });
+      }
     } catch (e: any) {
       setUploadError(e?.message || "Không tải được ảnh.");
     } finally {
       setUploading(false);
     }
   };
+
+  // Thao tác trên danh sách gộp [ảnh chính, ...ảnh phụ]: xóa, đặt làm ảnh chính, đổi chỗ.
+  const setGallery = (all: string[]) => setDraft((d) => d && { ...d, imageUrl: all[0] ?? "", images: all.slice(1) });
+  const gallery = draft ? [draft.imageUrl, ...draft.images].filter(Boolean) : [];
 
   const run = async (fn: () => Promise<{ ok: boolean; error?: string }>) => {
     setBusy(true);
@@ -109,6 +132,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
       description: "",
       imageUrl: "",
       imageAlt: "",
+      images: [],
       sortOrder: products.length + 1,
       isFeatured: false,
       isActive: true,
@@ -126,6 +150,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
       description: p.description,
       imageUrl: p.imageUrl,
       imageAlt: p.imageAlt,
+      images: [...p.images],
       sortOrder: p.sortOrder,
       isFeatured: p.isFeatured,
       isActive: p.isActive,
@@ -155,6 +180,7 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
       description: draft.description.trim(),
       imageUrl: draft.imageUrl.trim(),
       imageAlt: draft.imageAlt.trim(),
+      images: draft.images.map((s) => s.trim()).filter(Boolean),
       sortOrder: draft.sortOrder,
       isFeatured: draft.isFeatured,
       isActive: draft.isActive,
@@ -436,57 +462,78 @@ export default function ProductsPanel({ kind, data }: { kind: ProductKind; data:
             />
           </div>
 
-          <div className="row c2">
-            <div>
-              <label htmlFor="pd-file">Ảnh sản phẩm</label>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <input
-                  id="pd-file"
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) upload(f);
-                    e.target.value = "";
-                  }}
-                />
-                <button type="button" className="ghost" disabled={uploading} onClick={() => fileRef.current?.click()}>
-                  {uploading ? (
-                    "Đang tải lên…"
-                  ) : draft.imageUrl ? (
-                    "Đổi ảnh"
-                  ) : (
-                    <>
-                      <CameraIcon size={16} />
-                      &nbsp;Tải ảnh lên
-                    </>
-                  )}
-                </button>
-                {draft.imageUrl && (
-                  <button type="button" className="link" onClick={() => setDraft({ ...draft, imageUrl: "" })}>
-                    Bỏ ảnh
-                  </button>
-                )}
-              </div>
-              {uploadError && <div className="err">{uploadError}</div>}
-              {draft.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className="imgprev" src={draft.imageUrl} alt="" />
-              )}
+          <div>
+            <label htmlFor="pd-file">Ảnh sản phẩm ({gallery.length})</label>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input
-                id="pd-img"
-                value={draft.imageUrl}
-                placeholder="hoặc dán đường dẫn /images/… hay link https"
-                style={{ marginTop: 8, fontSize: 13 }}
-                onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
+                id="pd-file"
+                ref={fileRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (files.length) upload(files);
+                  e.target.value = "";
+                }}
               />
-              <div className="hint">Ảnh tự được thu nhỏ về tối đa 1600px trước khi tải lên.</div>
+              <button type="button" className="ghost" disabled={uploading || gallery.length > MAX_IMAGES} onClick={() => fileRef.current?.click()}>
+                {uploading ? (
+                  "Đang tải lên…"
+                ) : (
+                  <>
+                    <CameraIcon size={16} />
+                    &nbsp;{gallery.length ? "Thêm ảnh" : "Tải ảnh lên"}
+                  </>
+                )}
+              </button>
+              <span className="hint" style={{ margin: 0 }}>
+                Chọn được nhiều ảnh một lần. Ảnh đầu là ảnh chính (hiện ở thẻ, đơn hàng); nhiều ảnh → thẻ có slider.
+              </span>
             </div>
-            <div>
-              <label htmlFor="pd-alt">Mô tả ảnh (alt)</label>
-              <input id="pd-alt" value={draft.imageAlt} onChange={(e) => setDraft({ ...draft, imageAlt: e.target.value })} />
+            {uploadError && <div className="err">{uploadError}</div>}
+            {gallery.length > 0 && (
+              <div className="gallery">
+                {gallery.map((src, i) => (
+                  <div className={`gitem${i === 0 ? " main" : ""}`} key={src + i}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" />
+                    {i === 0 && <span className="gtag">Ảnh chính</span>}
+                    <div className="gacts">
+                      <button type="button" title="Lên trước" disabled={i === 0} onClick={() => setGallery(move(gallery, i, i - 1))}>
+                        ‹
+                      </button>
+                      <button type="button" title="Xuống sau" disabled={i === gallery.length - 1} onClick={() => setGallery(move(gallery, i, i + 1))}>
+                        ›
+                      </button>
+                      {i !== 0 && (
+                        <button type="button" title="Đặt làm ảnh chính" onClick={() => setGallery(move(gallery, i, 0))}>
+                          ★
+                        </button>
+                      )}
+                      <button type="button" className="del" title="Bỏ ảnh" onClick={() => setGallery(gallery.filter((_, k) => k !== i))}>
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="row c2" style={{ marginTop: 8 }}>
+              <div>
+                <input
+                  id="pd-img"
+                  value={draft.imageUrl}
+                  placeholder="hoặc dán đường dẫn ảnh chính: /images/… hay link https"
+                  style={{ fontSize: 13 }}
+                  onChange={(e) => setDraft({ ...draft, imageUrl: e.target.value })}
+                />
+                <div className="hint">Ảnh tự được thu nhỏ về tối đa 1600px trước khi tải lên.</div>
+              </div>
+              <div>
+                <input id="pd-alt" value={draft.imageAlt} placeholder="Mô tả ảnh (alt) — không bắt buộc" onChange={(e) => setDraft({ ...draft, imageAlt: e.target.value })} />
+              </div>
             </div>
           </div>
 
