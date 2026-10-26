@@ -425,17 +425,13 @@ button {
 }
 
 /* Chip lọc danh mục — cuộn ngang trên mobile */
+/* Chip lọc danh mục — xuống dòng khi hết chỗ, hiện đủ mọi danh mục, không cuộn ngang */
 .catchips {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding: 2px 2px 10px;
+  padding: 2px 0 10px;
   margin-bottom: 8px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.catchips::-webkit-scrollbar {
-  display: none;
 }
 .catchips button {
   flex: 0 0 auto;
