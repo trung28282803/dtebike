@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import type { ProductDTO } from "@/lib/catalog";
 
 // Toàn bộ ảnh của sản phẩm theo thứ tự hiển thị: ảnh chính trước, rồi ảnh phụ.
-export const productImages = (p: ProductDTO) => [p.imageUrl, ...p.images].filter(Boolean);
+// `?? []` phòng dữ liệu cache cũ (trước khi có trường images) — không để trang khách sập vì một trường thiếu.
+export const productImages = (p: ProductDTO) => [p.imageUrl, ...(p.images ?? [])].filter(Boolean);
 
 /* Xem ảnh sản phẩm nguyên bản. Thẻ sản phẩm ép ảnh vào khung 4:3 / 1:1 nên ảnh dài
    hoặc ngang bị thu nhỏ, thiếu chi tiết — bấm vào ảnh để xem đủ, vừa màn hình.

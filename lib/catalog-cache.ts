@@ -13,7 +13,9 @@ import { getPublicCatalog } from "./catalog";
 
 export const CATALOG_TAG = "catalog";
 
-export const getCachedPublicCatalog = unstable_cache(getPublicCatalog, ["public-catalog"], {
+// Tăng hậu tố version mỗi khi CatalogDTO đổi hình dạng (thêm/bớt trường) để entry cũ trong
+// Data Cache không còn khớp — tránh lỗi kiểu "x is not iterable" khi render dữ liệu cũ.
+export const getCachedPublicCatalog = unstable_cache(getPublicCatalog, ["public-catalog", "v2"], {
   tags: [CATALOG_TAG],
   revalidate: 300,
 });
