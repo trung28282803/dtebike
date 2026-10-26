@@ -3,9 +3,11 @@
    chất lượng 0.85 còn vài trăm KB — upload nhanh, trang khách tải nhẹ, và nằm dưới giới hạn
    4 MB của API. Ảnh đã nhỏ hơn ngưỡng thì giữ nguyên file gốc. */
 
-const MAX_EDGE = 1600;
-const QUALITY = 0.85;
-const SKIP_BELOW_BYTES = 400 * 1024;
+// 1200 px đủ cho thẻ sản phẩm (≈ 380 px) lẫn lightbox trên điện thoại; mỗi lượt tải ảnh
+// đều tính vào Blob Data Transfer (10 GB/tháng ở gói Hobby) nên giữ ảnh nhỏ nhất có thể.
+const MAX_EDGE = 1200;
+const QUALITY = 0.8;
+const SKIP_BELOW_BYTES = 250 * 1024;
 
 export async function shrinkImage(file: File): Promise<File> {
   if (!file.type.startsWith("image/")) return file;

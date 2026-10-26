@@ -772,6 +772,10 @@ type Preview = { product: ProductDTO; index: number };
 function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (v: Preview) => void }) {
   const [broken, setBroken] = useState(false);
   const [idx, setIdx] = useState(0);
+  /* Chỉ tải ảnh đầu; các ảnh còn lại tải khi khách chạm/rê chuột/bấm mũi tên vào slider.
+     Lý do: loading="lazy" KHÔNG chặn ảnh nằm ngang ngoài khung (trình duyệt vẫn tải trước),
+     75 sản phẩm × nhiều ảnh = hàng GB Blob Data Transfer mỗi tháng dù khách không xem. */
+  const [armed, setArmed] = useState(false);
   const slidesRef = useRef<HTMLDivElement>(null);
   const images = productImages(p);
 
@@ -785,6 +789,7 @@ function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (v: Preview) => vo
 
   const open = () => onOpen({ product: p, index: idx });
   const scrollTo = (i: number) => {
+    setArmed(true);
     const el = slidesRef.current;
     if (!el) return;
     const n = (i + images.length) % images.length;
@@ -818,7 +823,11 @@ function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (v: Preview) => vo
           <div
             className="slides"
             ref={slidesRef}
+            onPointerEnter={() => setArmed(true)}
+            onTouchStart={() => setArmed(true)}
+            onFocus={() => setArmed(true)}
             onScroll={(e) => {
+              setArmed(true);
               const el = e.currentTarget;
               const n = Math.round(el.scrollLeft / Math.max(1, el.clientWidth));
               if (n !== idx) setIdx(n);
@@ -828,9 +837,11 @@ function ProductImage({ p, onOpen }: { p: ProductDTO; onOpen: (v: Preview) => vo
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={src + i}
-                src={src}
-                alt={i === 0 ? p.imageAlt || p.name : `${p.name} — ảnh ${i + 1}`}
-                loading={i === 0 ? "lazy" : "lazy"}
+                // Chưa "arm" thì không có src → trình duyệt không tải, nhưng vẫn giữ chỗ cho scroll-snap.
+                src={i === 0 || armed ? src : undefined}
+                alt={i === 0 ? p.imageAlt || p.name : armed ? `${p.name} — ảnh ${i + 1}` : ""}
+                loading="lazy"
+                decoding="async"
                 onError={() => i === 0 && setBroken(true)}
               />
             ))}
